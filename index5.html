@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Time-Scheduled Activities (Mon–Fri)</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --accent: #7bd88f;
+      --accent-2: #8ab4ff;
+      --text: #e7ecff;
+      --muted: #a8b0d8;
+      --danger: #ff8a8a;
+      --ring: 0 0 0 3px rgba(123,216,143,0.25);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 70% -10%, #1b2552 0%, var(--bg) 40%, #060913 100%);
+      color: var(--text);
+    }
+    header {
+      display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+      padding: 20px clamp(16px, 4vw, 48px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { font-weight: 700; letter-spacing: 0.3px; font-size: clamp(18px, 2.2vw, 24px); }
+    .clock { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: flex-end;
+      font-feature-settings: "tnum" 1, "zero" 1; font-variant-numeric: tabular-nums; }
+    .clock .time { font-size: clamp(18px, 2.6vw, 28px); font-weight: 700; }
+    .clock .date { color: var(--muted); font-size: 14px; }
+
+    main { padding: 24px clamp(16px, 4vw, 48px); display: grid; gap: 24px; }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      padding: clamp(16px, 2.5vw, 24px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+
+    .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
+    @media (max-width: 1000px){ .grid { grid-template-columns: 1fr; } }
+
+    .status { display: flex; align-items: center; gap: 10px; }
+    .badge { padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
+    .badge.live { background: rgba(123,216,143,0.2); color: var(--accent); border: 1px solid rgba(123,216,143,0.5); }
+    .badge.idle { background: rgba(138,180,255,0.15); color: var(--accent-2); border: 1px solid rgba(138,180,255,0.5); }
+
+    .activity-title { font-size: clamp(18px, 2vw, 22px); margin: 8px 0 4px; }
+    .activity-window { aspect-ratio: 16/9; width: 100%; border: 0; border-radius: 12px; background: #0c1328; display: block; }
+    .activity-placeholder { display: grid; place-items: center; color: var(--muted); font-size: 14px; height: min(58vh, 520px); border-radius: 12px; background:
+      radial-gradient(400px 120px at 30% 20%, rgba(123,216,143,0.08), transparent),
+      radial-gradient(500px 200px at 100% 0%, rgba(138,180,255,0.08), transparent),
+      #0c1328; border: 1px dashed rgba(255,255,255,0.12);
+    }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .controls input, .controls select { background: #0e1630; color: var(--text); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; outline: none; }
+    .controls input:focus, .controls select:focus { box-shadow: var(--ring); border-color: rgba(123,216,143,0.6); }
+    .controls button { background: linear-gradient(180deg, #1f2a56, #172044); color: var(--text); border: 1px solid rgba(255,255,255,0.12); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    .controls button.primary { background: linear-gradient(180deg, #29a36e, #15824f); border-color: rgba(0,0,0,0.2); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    th { text-align: left; color: var(--muted); font-weight: 600; }
+
+    /* Spot-the-difference game */
+    .game-wrap { display: grid; gap: 16px; }
+    .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .board { position: relative; background: #0c1328; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
+    .board svg { display: block; width: 100%; height: auto; }
+    .marker { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); background: rgba(123,216,143,0.15); transform: translate(-50%, -50%); display: grid; place-items: center; font-weight: 700; }
+    .progress { color: var(--muted); font-size: 14px; }
+    .success { color: var(--accent); font-weight: 700; }
+    .hint { color: var(--accent-2); font-size: 13px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">🗓️ Time-Scheduled Activities (Mon–Fri)</div>
+  <div class="clock">
+    <div class="time" id="timeText">--:--</div>
+    <div class="date" id="dateText">—</div>
+  </div>
+</header>
+
+<main>
+  <section class="panel grid">
+    <div>
+      <div class="status">
+        <span class="badge" id="statusBadge">Idle</span>
+        <span id="statusText">Waiting for next slot…</span>
+      </div>
+      <h2 class="activity-title" id="activityTitle">—</h2>
+      <div id="activityMount"></div>
+    </div>
+    <aside>
+      <h3 style="margin:0 0 10px">Schedule</h3>
+      <div class="controls" style="margin-bottom:10px">
+        <label style="font-size:13px;color:var(--muted)">Test at:</label>
+        <input id="testDate" type="date"> <input id="testTime" type="time" step="60">
+        <button id="applyTest">Preview</button>
+        <button id="clearTest">Now</button>
+        <button id="skipBtn">Skip ▶︎</button>
+      </div>
+      <div style="max-height: 52vh; overflow: auto; border:1px solid rgba(255,255,255,0.08); border-radius: 12px;">
+        <table id="scheduleTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </aside>
+  </section>
+
+  <section class="panel">
+    <h3 style="margin-top:0">How to customize</h3>
+    <ol style="margin-top:8px; line-height:1.7">
+      <li>Edit the <code>schedule</code> array in the script (below) to set times and per-day activities.</li>
+      <li>For YouTube, put your <code>videoId</code> (the part after <code>v=</code> in the URL).</li>
+      <li>For games, set <code>type: "game"</code> and a <code>gameId</code> (e.g., <code>spot1</code>).</li>
+      <li>Use the <strong>Preview</strong> controls to test any date & time without changing your system clock.</li>
+      <li>Run this file with the VS Code “Live Server” extension.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+  /* =============================
+   * 1) CONFIGURE YOUR SCHEDULE (Mon–Fri grid)
+   * ============================= */
+  const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri"];
+
+  // Each row defines a time window; fill per-day cells with an activity or leave empty (undefined)
+  const schedule = [
+    { start:"08:00", end:"08:30",
+      Mon:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
+      Tue:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
+      Wed:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
+      Thu:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
+      Fri:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
+    },
+    { start:"08:30", end:"08:45",
+      Mon:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
+      Tue:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
+      Wed:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
+      Thu:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
+      Fri:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
+    },
+    { start:"12:30", end:"13:00",
+      Mon:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
+      Tue:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
+      Wed:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
+      Thu:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
+      Fri:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
+    },
+    { start:"15:00", end:"15:15",
+      Mon:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
+      Tue:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
+      Wed:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
+      Thu:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
+      Fri:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
+    },
+    { start:"15:15", end:"15:30",
+      Mon:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
+      Tue:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
+      Wed:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
+      Thu:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
+      Fri:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
+    },
+  ];
+
+  /* =============================
+   * 2) CLOCK + STATUS UI
+   * ============================= */
+  const $ = sel => document.querySelector(sel);
+  const timeText = $("#timeText");
+  const dateText = $("#dateText");
+  const statusBadge = $("#statusBadge");
+  const statusText  = $("#statusText");
+  const activityTitle = $("#activityTitle");
+  const activityMount = $("#activityMount");
+
+  function renderScheduleTable(){
+    const thead = document.querySelector('#scheduleTable thead');
+    const tbody = document.querySelector('#scheduleTable tbody');
+    thead.innerHTML = `<tr><th>Time</th>${WEEKDAYS.map(d=>`<th>${d}</th>`).join('')}</tr>`;
+    tbody.innerHTML = schedule.map(s => {
+      const dayCells = WEEKDAYS.map(d => {
+        const a = s[d];
+        if(!a) return `<td style="color: var(--muted)">—</td>`;
+        const label = a.type === 'video' ? 'video' : a.type === 'game' ? 'game' : 'activity';
+        const detail = a.type === 'video' ? (a.videoId||'') : (a.gameId||'');
+        return `<td title="${label}${detail?': '+detail:''}">${label}</td>`;
+      }).join('');
+      return `<tr><td>${s.start}–${s.end}</td>${dayCells}</tr>`;
+    }).join('');
+  }
+  renderScheduleTable();
+
+  function pad(n){ return n.toString().padStart(2,'0'); }
+  function fmtDate(d){
+    return d.toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+  }
+  function fmtTime(d){ return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function dayShort(d){
+    // Robust, locale-independent weekday short name
+    const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    return names[d.getDay()];
+  }
+
+  let testClock = null; // Date override for testing
+  function now(){ return testClock ? new Date(testClock) : new Date(); }
+
+  function tick(){
+    const d = now();
+    timeText.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    dateText.textContent = fmtDate(d);
+    const slot = findCurrentSlot(d);
+    if(slot){ setStatus('live', `Now playing: ${slot.title || niceTitle(slot)}`); mountActivity(slot); }
+    else { setStatus('idle', 'No scheduled activity right now'); mountPlaceholder(); }
+  }
+
+  function setStatus(kind, text){
+    statusBadge.textContent = kind === 'live' ? 'Live' : 'Idle';
+    statusBadge.className = 'badge ' + (kind==='live' ? 'live' : 'idle');
+    statusText.textContent = text;
+  }
+
+  function niceTitle(s){
+    if(s.type==='video') return 'YouTube Video';
+    if(s.type==='game') return 'Mini Game';
+    return 'Activity';
+  }
+
+  function findCurrentSlot(d){
+    const t = fmtTime(d);
+    const day = dayShort(d);
+    if(!WEEKDAYS.includes(day)) return null; // skip weekends
+    for(const s of schedule){
+      if(s.start <= t && t < s.end){
+        const a = s[day];
+        if(a) return { ...a, start:s.start, end:s.end };
+      }
+    }
+    return null;
+  }
+
+  // Also allow skipping to the next slot (for demos)
+  function nextSlotAfter(d){
+    const curDay = dayShort(d);
+    const t = fmtTime(d);
+    const idx = WEEKDAYS.indexOf(curDay);
+
+    // slots later today first
+    if(idx !== -1){
+      const todaySlots = schedule.filter(s => s[WEEKDAYS[idx]] && s.start > t).sort((a,b)=>a.start.localeCompare(b.start));
+      if(todaySlots.length) return { date:new Date(d), slot: {...todaySlots[0][WEEKDAYS[idx]]}, time: todaySlots[0].start };
+    }
+    // else find the very next weekday with slots
+    for(let i=1;i<=7;i++){
+      const nd = new Date(d); nd.setDate(nd.getDate()+i);
+      const ds = dayShort(nd);
+      const di = WEEKDAYS.indexOf(ds);
+      if(di === -1) continue; // weekend
+      const daySlots = schedule.filter(s => s[ds]).sort((a,b)=>a.start.localeCompare(b.start));
+      if(daySlots.length) return { date: nd, slot: {...daySlots[0][ds]}, time: daySlots[0].start };
+    }
+    return null;
+  }
+
+  /* =============================
+   * 3) ACTIVITY MOUNTING
+   * ============================= */
+  let mountedKey = '';
+  function mountActivity(s){
+    const key = JSON.stringify({t:s.type, i:s.videoId||s.gameId, ttl:s.title});
+    if(key === mountedKey) return; // avoid remounting every tick
+    mountedKey = key;
+    activityTitle.textContent = s.title || niceTitle(s);
+
+    if(s.type === 'video'){
+      // Click-to-play wrapper so playback starts from a user gesture and stays inline
+      const containerId = 'yt_'+Math.random().toString(36).slice(2);
+      activityMount.innerHTML = `
+        <div id="${containerId}" class="activity-placeholder" style="position:relative; aspect-ratio:16/9; height:auto;">
+          <button id="btn_${containerId}" style="position:absolute; inset:0; display:grid; place-items:center; border:0; background:transparent; cursor:pointer">
+            <div style="padding:14px 18px; border-radius:999px; font-weight:700; border:1px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.35); backdrop-filter: blur(3px)">▶︎ Click to play</div>
+          </button>
+        </div>`;
+      const btn = document.getElementById('btn_'+containerId);
+      btn.addEventListener('click', ()=>{
+        const originParam = encodeURIComponent(location.origin || (location.protocol + '//' + location.host));
+        const url = `https://www.youtube.com/embed/${s.videoId}?enablejsapi=1&origin=${originParam}&rel=0&modestbranding=1&playsinline=1&autoplay=1&mute=1`;
+        document.getElementById(containerId).innerHTML = `
+          <iframe class="activity-window"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen src="${url}"></iframe>
+          <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+            If playback fails, <a href="https://www.youtube.com/watch?v=${s.videoId}" target="_blank" rel="noopener noreferrer">open on YouTube</a>.
+          </div>`;
+      }, { once:true });
+    } else if(s.type === 'game'){
+      if(s.gameId === 'spot1') mountSpotGame(level1);
+      else if(s.gameId === 'spot2') mountSpotGame(level2);
+      else activityMount.innerHTML = `<div class="activity-placeholder">Unknown game id: ${s.gameId}</div>`;
+    } else {
+      mountPlaceholder();
+    }
+  }
+
+  function mountPlaceholder(){
+    mountedKey='';
+    activityTitle.textContent = 'No Activity';
+    activityMount.innerHTML = `<div class="activity-placeholder">Nothing scheduled. Use the Preview controls to jump around time, or add more items to the schedule.</div>`;
+  }
+
+  /* =============================
+   * 4) SIMPLE SPOT-THE-DIFFERENCE GAME
+   * ============================= */
+  function mountSpotGame(level){
+    const { svgLeft, svgRight, hotspots } = level;
+    activityMount.innerHTML = `
+      <div class="game-wrap">
+        <div class="progress"><span id="foundCount">0</span> / ${hotspots.length} differences found</div>
+        <div class="boards">
+          <div class="board" id="boardL">${svgLeft}</div>
+          <div class="board" id="boardR">${svgRight}</div>
+        </div>
+        <div class="hint">Hint: Click the <em>right</em> image where something looks different.</div>
+      </div>`;
+
+    const boardR = document.getElementById('boardR');
+    const found = new Set();
+
+    // Place invisible hotspot hit-areas over the right image
+    hotspots.forEach((h, idx) => {
+      const el = document.createElement('div');
+      el.style.position = 'absolute';
+      el.style.left = (h.x*100)+'%';
+      el.style.top = (h.y*100)+'%';
+      el.style.width = (h.r*200)+'%';
+      el.style.height = (h.r*200)+'%';
+      el.style.transform = 'translate(-50%, -50%)';
+      el.style.cursor = 'crosshair';
+      el.style.borderRadius = '50%';
+      el.style.background = 'rgba(255,255,255,0)';
+      el.setAttribute('data-idx', idx);
+      el.addEventListener('click', (e)=>{
+        const i = +e.currentTarget.getAttribute('data-idx');
+        if(found.has(i)) return;
+        found.add(i);
+        placeMarker(boardR, h.x, h.y, found.size);
+        document.getElementById('foundCount').textContent = found.size;
+        if(found.size === hotspots.length){
+          const p = document.querySelector('.progress');
+          p.innerHTML = `<span class="success">Great! You found all ${hotspots.length}.</span>`;
+        }
+      });
+      boardR.appendChild(el);
+    });
+  }
+
+  function placeMarker(container, x, y, n){
+    const m = document.createElement('div');
+    m.className = 'marker';
+    m.style.left = (x*100)+'%';
+    m.style.top = (y*100)+'%';
+    m.textContent = n;
+    container.appendChild(m);
+  }
+
+  // Two small levels using inline SVG; right image has subtle differences.
+  const level1 = {
+    svgLeft: simpleCitySVG(false),
+    svgRight: simpleCitySVG(true),
+    hotspots: [ // relative positions (0..1)
+      {x:0.22, y:0.50, r:0.04}, // window color
+      {x:0.55, y:0.35, r:0.05}, // sun vs moon
+      {x:0.78, y:0.70, r:0.05}, // tree crown size
+    ]
+  };
+  const level2 = {
+    svgLeft: simpleGardenSVG(false),
+    svgRight: simpleGardenSVG(true),
+    hotspots: [
+      {x:0.25, y:0.60, r:0.05}, // flower petal
+      {x:0.50, y:0.30, r:0.05}, // butterfly wing mark
+      {x:0.78, y:0.65, r:0.05}, // pot stripe
+      {x:0.40, y:0.78, r:0.05}, // rock missing
+    ]
+  };
+
+  function simpleCitySVG(modified){
+    // modified = true adds differences on right image
+    return `
+    <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" aria-label="City"> 
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#243a6b"/>
+          <stop offset="100%" stop-color="#0f1835"/>
+        </linearGradient>
+      </defs>
+      <rect width="800" height="450" fill="url(#sky)"/>
+      ${modified ? '<circle cx="600" cy="90" r="30" fill="#cfd8ff"/>' : '<circle cx="600" cy="90" r="30" fill="#ffd16b"/>'}
+      <rect x="120" y="170" width="200" height="220" fill="#2b3c77"/>
+      <rect x="360" y="210" width="160" height="180" fill="#29366a"/>
+      <rect x="160" y="210" width="40" height="40" fill="${modified ? '#50e3a4' : '#ffe08a'}"/>
+      <rect x="420" y="250" width="40" height="40" fill="#a8b0d8"/>
+      <rect x="640" y="260" width="40" height="100" fill="#35518a"/>
+      <rect x="640" y="360" width="80" height="20" fill="#1e2a52"/>
+      <circle cx="700" cy="330" r="${modified ? 60 : 45}" fill="#2e8258"/>
+      <rect y="390" width="800" height="60" fill="#131a36"/>
+    </svg>`;
+  }
+
+  function simpleGardenSVG(modified){
+    return `
+    <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" aria-label="Garden">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#283d7d"/>
+          <stop offset="100%" stop-color="#0e1a3a"/>
+        </linearGradient>
+      </defs>
+      <rect width="800" height="450" fill="url(#lg)"/>
+      <circle cx="120" cy="350" r="60" fill="#2e8258"/>
+      <circle cx="260" cy="360" r="50" fill="#2e8258"/>
+      <rect x="620" y="260" width="80" height="90" fill="#6b4f2a"/>
+      ${modified ? '<rect x="620" y="300" width="80" height="10" fill="#ffe08a"/>' : ''}
+      <circle cx="660" cy="250" r="40" fill="#2e8258"/>
+      <g>
+        <circle cx="250" cy="220" r="${modified ? 18 : 24}" fill="#ff7ab6"/>
+        <circle cx="250" cy="220" r="10" fill="#ffd1e6"/>
+        <rect x="246" y="228" width="8" height="20" fill="#6b4f2a"/>
+      </g>
+      <g>
+        <path d="M380,120 q20,10 0,20 q20,10 0,20" fill="#ffd16b"/>
+        ${modified ? '<circle cx="380" cy="150" r="6" fill="#0b1020"/>' : ''}
+      </g>
+      ${modified ? '' : '<circle cx="320" cy="360" r="14" fill="#a8b0d8"/>'}
+      <rect y="390" width="800" height="60" fill="#131a36"/>
+    </svg>`;
+  }
+
+  /* =============================
+   * 5) PREVIEW CONTROLS
+   * ============================= */
+  const testDate = document.getElementById('testDate');
+  const testTime = document.getElementById('testTime');
+  const applyTest = document.getElementById('applyTest');
+  const clearTest = document.getElementById('clearTest');
+  const skipBtn = document.getElementById('skipBtn');
+
+  applyTest.addEventListener('click', ()=>{
+    if(!testDate.value || !testTime.value){ alert('Pick a date and time'); return; }
+    const [y,m,d] = testDate.value.split('-').map(Number);
+    const [hh,mm] = testTime.value.split(':').map(Number);
+    testClock = new Date(y, m-1, d, hh, mm, 0);
+    tick();
+  });
+  clearTest.addEventListener('click', ()=>{ testClock = null; tick(); });
+  skipBtn.addEventListener('click', ()=>{
+    const start = now();
+    const next = nextSlotAfter(start);
+    if(!next){ alert('No upcoming slots in schedule.'); return; }
+    const nd = next.date; const [H,M] = next.time.split(':').map(Number);
+    nd.setHours(H, M, 0, 0);
+    testClock = nd; tick();
+  });
+
+  // Initialize clock & periodic updates
+  tick();
+  setInterval(tick, 1000 * 15); // refresh every 15s
+</script>
+</body>
+</html>
