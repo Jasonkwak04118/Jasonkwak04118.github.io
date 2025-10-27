@@ -1,483 +1,421 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Time-Scheduled Activities (Mon–Fri)</title>
+  <title>시니아이 – 주야간보호 활동 운영, 더 쉬워지다</title>
+  <meta name="description" content="주야간보호센터 활동 준비·진행·정리를 한 번에. 시니아이가 시간표애 맞춰서 알아서 진행합니다." />
   <style>
-    :root {
-      --bg: #0b1020;
-      --panel: #121933;
-      --accent: #7bd88f;
-      --accent-2: #8ab4ff;
-      --text: #e7ecff;
-      --muted: #a8b0d8;
-      --danger: #ff8a8a;
-      --ring: 0 0 0 3px rgba(123,216,143,0.25);
+    :root{
+      --primary: #FF6B35;
+      --primary-600:#ff6b35;
+      --primary-500:#ff7d4f;
+      --primary-400:#ff8a3d;
+      --ink:#0b1220;
+      --muted:#5b5f6e;
+      --bg:#FFF8F3;
+      --card:#ffffff;
+      --line:#eceef2;
+      --shadow: 0 10px 30px rgba(0,0,0,.06);
       --radius: 16px;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: radial-gradient(1200px 800px at 70% -10%, #1b2552 0%, var(--bg) 40%, #060913 100%);
-      color: var(--text);
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Segoe UI", system-ui, sans-serif;
+      color:var(--ink);
+      background:#fff;
+      line-height:1.65;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
     }
-    header {
-      display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
-      padding: 20px clamp(16px, 4vw, 48px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
-      position: sticky; top: 0; z-index: 10;
+    
+    a{color:inherit;text-decoration:none}
+    a:hover{text-decoration:none}
+    html{scroll-behavior:smooth}
+    .btn:focus-visible{outline:3px solid rgba(255,107,53,.35); outline-offset:2px}
+
+    .container{max-width:1120px;margin:0 auto;padding:0 20px}
+    /* Header (Toss-like: thin bar, roomy, ghost CTA) */
+    header{
+      position:sticky;top:0;z-index:50;background:#fff;
+      border-bottom:1px solid var(--line);
+      backdrop-filter:saturate(180%) blur(6px);
     }
-    .brand { font-weight: 700; letter-spacing: 0.3px; font-size: clamp(18px, 2.2vw, 24px); }
-    .clock { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: flex-end;
-      font-feature-settings: "tnum" 1, "zero" 1; font-variant-numeric: tabular-nums; }
-    .clock .time { font-size: clamp(18px, 2.6vw, 28px); font-weight: 700; }
-    .clock .date { color: var(--muted); font-size: 14px; }
-
-    main { padding: 24px clamp(16px, 4vw, 48px); display: grid; gap: 24px; }
-
-    .panel {
-      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: var(--radius);
-      padding: clamp(16px, 2.5vw, 24px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+    .logo{font-weight:800;letter-spacing:-.2px;font-size:20px;color:var(--primary)}
+    .nav a{font-weight:600;text-decoration:none}
+    .btn{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:10px 16px;font-weight:700;border:1px solid var(--line);}
+    .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn-ghost{background:#fff;color:var(--primary);border-color:var(--primary-400)}
+    .btn:hover{transform:translateY(-1px)}
+    /* Hero */
+    .hero{background:linear-gradient(180deg,#fff 0%, var(--bg) 100%);}
+    .hero-wrap{padding:80px 0 60px; text-align:center}
+    .eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.2);border-radius:999px;padding:6px 10px;margin-bottom:14px}
+    h1{font-size:48px;line-height:1.15;margin:0 0 14px;letter-spacing:-.5px}
+    .sub{font-size:18px;color:var(--muted);margin:0 auto 28px;max-width:680px}
+    .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    /* Feature summary pills */
+    .pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+    .pill{font-size:14px;background:#fff;border:1px solid var(--line);padding:8px 12px;border-radius:999px;box-shadow:var(--shadow)}
+    /* Section base */
+    section{padding:72px 0}
+    .sec-title{font-size:32px;margin:0 0 10px}
+    .sec-desc{color:var(--muted);margin:0 0 32px}
+    /* Cards grid (Toss style: soft shadow, rounded, lots of white) */
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow);}
+    .card h3{margin:8px 0 8px;font-size:18px}
+    .icon{font-size:28px;display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,107,53,.10);color:var(--primary)}
+    .micro{color:var(--muted);font-size:14px}
+    /* Steps (like Toss’ simple line cards) */
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--shadow)}
+    .badge{width:28px;height:28px;border-radius:999px;background:var(--primary);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;flex:0 0 28px}
+    /* Pricing */
+    /* 데스크톱에서는 2열 */
+    .pricing{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:16px;
+    max-width:900px; /* 약간 확장 추천 */
+    margin:0 auto;
     }
 
-    .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
-    @media (max-width: 1000px){ .grid { grid-template-columns: 1fr; } }
-
-    .status { display: flex; align-items: center; gap: 10px; }
-    .badge { padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
-    .badge.live { background: rgba(123,216,143,0.2); color: var(--accent); border: 1px solid rgba(123,216,143,0.5); }
-    .badge.idle { background: rgba(138,180,255,0.15); color: var(--accent-2); border: 1px solid rgba(138,180,255,0.5); }
-
-    .activity-title { font-size: clamp(18px, 2vw, 22px); margin: 8px 0 4px; }
-    .activity-window { aspect-ratio: 16/9; width: 100%; border: 0; border-radius: 12px; background: #0c1328; display: block; }
-    .activity-placeholder { display: grid; place-items: center; color: var(--muted); font-size: 14px; height: min(58vh, 520px); border-radius: 12px; background:
-      radial-gradient(400px 120px at 30% 20%, rgba(123,216,143,0.08), transparent),
-      radial-gradient(500px 200px at 100% 0%, rgba(138,180,255,0.08), transparent),
-      #0c1328; border: 1px dashed rgba(255,255,255,0.12);
+    /* 모바일에서만 1열 */
+    @media (max-width: 900px){
+    .pricing{
+        grid-template-columns:1fr;
+    }
     }
 
-    .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .controls input, .controls select { background: #0e1630; color: var(--text); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px; outline: none; }
-    .controls input:focus, .controls select:focus { box-shadow: var(--ring); border-color: rgba(123,216,143,0.6); }
-    .controls button { background: linear-gradient(180deg, #1f2a56, #172044); color: var(--text); border: 1px solid rgba(255,255,255,0.12); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-    .controls button.primary { background: linear-gradient(180deg, #29a36e, #15824f); border-color: rgba(0,0,0,0.2); }
+    .tier{background:#fff;border:2px solid var(--primary-400);border-radius:18px;padding:28px;box-shadow:var(--shadow)}
+    .price{font-size:44px;font-weight:900;color:var(--primary);margin:8px 0}
+    .check{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+    .check i{font-style:normal;color:var(--primary)}
+    /* CTA banner */
+    .cta{background:linear-gradient(90deg,var(--primary) 0%, var(--primary-400) 100%);color:#fff;border-radius:20px;padding:36px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;box-shadow:var(--shadow)}
+    /* Footer */
+    footer{border-top:1px solid var(--line);padding:32px 0;color:var(--muted)}
+    /* Responsive */
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .steps{grid-template-columns:1fr}
+      h1{font-size:34px}
+      .sec-title{font-size:26px}
+    }
+  
+/* ===== Scroll Reveal (Toss-like) ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  will-change: opacity, transform;
+  transition:
+    opacity .7s ease,
+    transform .7s cubic-bezier(.2,.65,.2,1);
+  transition-delay: var(--d, 0ms); /* stagger delay */
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
 
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-    th { text-align: left; color: var(--muted); font-weight: 600; }
+/* Reduce motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
 
-    /* Spot-the-difference game */
-    .game-wrap { display: grid; gap: 16px; }
-    .boards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .board { position: relative; background: #0c1328; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
-    .board svg { display: block; width: 100%; height: auto; }
-    .marker { position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--accent); background: rgba(123,216,143,0.15); transform: translate(-50%, -50%); display: grid; place-items: center; font-weight: 700; }
-    .progress { color: var(--muted); font-size: 14px; }
-    .success { color: var(--accent); font-weight: 700; }
-    .hint { color: var(--accent-2); font-size: 13px; }
-  </style>
+</style>
 </head>
 <body>
-<header>
-  <div class="brand">🗓️ Time-Scheduled Activities (Mon–Fri)</div>
-  <div class="clock">
-    <div class="time" id="timeText">--:--</div>
-    <div class="date" id="dateText">—</div>
-  </div>
-</header>
-
-<main>
-  <section class="panel grid">
-    <div>
-      <div class="status">
-        <span class="badge" id="statusBadge">Idle</span>
-        <span id="statusText">Waiting for next slot…</span>
-      </div>
-      <h2 class="activity-title" id="activityTitle">—</h2>
-      <div id="activityMount"></div>
+  <header>
+    <div class="container nav">
+      <div class="logo">시니아이</div>
+      <nav>
+        <a class="btn btn-ghost" href="#containers">기능 보기</a>
+        <a class="btn btn-primary" href="#reserve">사전예약</a>
+      </nav>
     </div>
-    <aside>
-      <h3 style="margin:0 0 10px">Schedule</h3>
-      <div class="controls" style="margin-bottom:10px">
-        <label style="font-size:13px;color:var(--muted)">Test at:</label>
-        <input id="testDate" type="date"> <input id="testTime" type="time" step="60">
-        <button id="applyTest">Preview</button>
-        <button id="clearTest">Now</button>
-        <button id="skipBtn">Skip ▶︎</button>
-      </div>
-      <div style="max-height: 52vh; overflow: auto; border:1px solid rgba(255,255,255,0.08); border-radius: 12px;">
-        <table id="scheduleTable">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </aside>
-  </section>
+  </header>
 
-  <section class="panel">
-    <h3 style="margin-top:0">How to customize</h3>
-    <ol style="margin-top:8px; line-height:1.7">
-      <li>Edit the <code>schedule</code> array in the script (below) to set times and per-day activities.</li>
-      <li>For YouTube, put your <code>videoId</code> (the part after <code>v=</code> in the URL).</li>
-      <li>For games, set <code>type: "game"</code> and a <code>gameId</code> (e.g., <code>spot1</code>).</li>
-      <li>Use the <strong>Preview</strong> controls to test any date & time without changing your system clock.</li>
-      <li>Run this file with the VS Code “Live Server” extension.</li>
-    </ol>
-  </section>
-</main>
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container hero-wrap">
+        <span class="eyebrow">새로운 운영의 표준</span>  
+        <h1>데이케어센터 활동 운영,<br/>모든 것을 <span style="color:var(--primary)">한 번에</span>.</h1>
+        <p class="sub">영상 찾고, 기기 연결하고, 자료 준비하느라 시간 보내지 마세요. <br/> 시니아이가 시간표에 맞춰서 <b>알아서</b> 진행합니다.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#reserve">무료로 시작하기 ✨</a>
+          <a class="btn" href="#how">클릭 하나로 시작하는 방법 보기</a>
+        </div>
+        <div class="pills">
+          <span class="pill">⏰ 준비 시간 1분</span>
+          <span class="pill">🧩 인지·체조·노래</span>
+          <span class="pill">📺 TV로 바로 사용 가능</span>
+          <span class="pill">🔒 맞춤형 프로그램</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEMS (Toss-like simple cards) -->
+    <section id="features">
+      <div class="container">
+        <h2 class="sec-title">센터의 현실, 우리가 해결합니다</h2>
+        <p class="sec-desc">준비 지연과 연결 오류를 줄이면, 어르신 집중도는 자연히 올라갑니다.</p>
+
+        <div class="grid">
+          <div class="card">
+            <span class="icon">⏱️</span>
+            <h3>자꾸 시간이 새요</h3>
+            <p class="micro">디지털 기기 활용 미숙으로 수업 시작/진행이 지연됩니다.</p>
+          </div>
+          <div class="card">
+            <span class="icon">🔌</span>
+            <h3>TV/스피커 연결이 매번 달라요</h3>
+            <p class="micro">케이블·볼륨·재생 오류로 흐름이 자주 끊깁니다.</p>
+          </div>
+          <div class="card">
+            <span class="icon">🗂️</span>
+            <h3>콘텐츠가 흩어져 있어요</h3>
+            <p class="micro">유튜브·폴더·USB… 기억도 관리도 어렵습니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="how" style="background:var(--bg)">
+      <div class="container">
+        <h2 class="sec-title">이렇게 간단해요</h2>
+        <p class="sec-desc">설명이 필요없을정도로 사용하기 쉬워요.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="badge">1</div>
+            <div>
+              <strong>접속</strong><br/>
+              <span class="micro">로그인하면 대시보드가 열립니다.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="badge">2</div>
+            <div>
+              <strong>선택</strong><br/>
+              <span class="micro">스케쥴표에 원하는 활동을 적습니다.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="badge">3</div>
+            <div>
+              <strong>시작</strong><br/>
+              <span class="micro">제공된 링크를 열면 시간표에 맞게 필요한 활동들이 알아서 바로 진행돼요.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VALUE CARDS -->
+    <section id="containers">
+      <div class="container">
+        <h2 class="sec-title">필수 기능만 담았습니다</h2>
+        <p class="sec-desc">가볍지만 든든합니다. 매일 쓰는 기능을 쉽게.</p>
+        <div class="grid">
+          <div class="card">
+            <span class="icon">🧠</span>
+            <h3>인지 활동</h3>
+            <p class="micro">퍼즐·맞춤 퀴즈·집중 훈련. 난이도 자동 추천.</p>
+          </div>
+          <div class="card">
+            <span class="icon">🤸</span>
+            <h3>안전 체조</h3>
+            <p class="micro">가벼운 난이도로 따라하기 쉽게 구성.</p>
+          </div>
+          <div class="card">
+            <span class="icon">🎤</span>
+            <h3>노래/합창</h3>
+            <p class="micro">자막·박자 표시로 다함께 즐거운 시간.</p>
+          </div>
+          <div class="card">
+            <span class="icon">📥</span>
+            <h3>오프라인 보조</h3>
+            <p class="micro">인터넷 이슈 시 사전 캐시 데이터로 앱처럼 재생.</p>
+          </div>
+          <div class="card">
+            <span class="icon">📝</span>
+            <h3>활동 로그</h3>
+            <p class="micro">매일 기록되고, 월간 보고서로 한 번에 출력.</p>
+          </div>
+          <div class="card">
+            <span class="icon">🔉</span>
+            <h3>어르신 친화 옵션</h3>
+            <p class="micro">큰 글씨·자막·느린 박자 기본값으로 가독성/가시성 강화.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing" style="background:var(--bg)">
+      <div class="container">
+        <h2 class="sec-title">사전예약하기</h2>
+        <p class="sec-desc">부담 없이 시작해 보세요. 출시 후 아래 혜택을 드려요.</p>
+        <div class="pricing">
+          <div class="tier alt">
+            <div class="eyebrow" style="margin-bottom:8px">Free</div>
+            <div class="price">₩0</div>
+            <div class="check"><i>✓</i><span>핵심 모듈 사용</span></div>
+            <div class="check"><i>✓</i><span>연결 가이드, 큰 글씨/자막 기본</span></div>
+            <div class="check"><i>✓</i><span>활동 로그 · 월 1회 출력</span></div>
+            <div class="check"><i>✓</i><span>카톡 지원(8–17시)</span></div>
+            <div style="margin-top:14px"><a class="btn" href="#reserve">무료 버전 사전 예약</a></div>
+          </div>
+          <div class="tier">
+            <div class="eyebrow" style="margin-bottom:8px">Pro</div>
+            <div class="price">₩20000/월</div>
+            <div class="check"><i>✓</i><span>전체 모듈·추천·즐겨찾기</span></div>
+            <div class="check"><i>✓</i><span>오프라인 캐시 확대</span></div>
+            <div class="check"><i>✓</i><span>무제한 문서작업 자동화 기능</span></div>
+            <div class="check"><i>✓</i><span>우선 기술 지원</span></div>
+            <div style="margin-top:14px"><a class="btn btn-primary" href="https://linktw.in/XrByBv">유료 버전 사전 예약</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section style="background:var(--bg)">
+      <div class="container">
+        <h2 class="sec-title">자주 묻는 질문</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>인터넷이 불안정해요.</h3>
+            <p class="micro">사전 다운로드(캐시)로 오프라인처럼 재생해 끊김을 최소화합니다.</p>
+          </div>
+          <div class="card">
+            <h3>우리 TV로도 되나요?</h3>
+            <p class="micro">스마트TV의 브라우저로 바로 접속하거나, 스마트폰 미러링으로 즉시 사용 가능합니다.</p>
+          </div>
+          <div class="card">
+            <h3>개인정보는 수집하나요?</h3>
+            <p class="micro">아니요. 개인정보 수집 없이 동작합니다. 활동 로그만 저장됩니다.</p>
+          </div>
+          <div class="card">
+            <h3>보고서는 어떻게 뽑나요?</h3>
+            <p class="micro">매일의 활동 로그가 자동 축적되고, 월 단위로 한 번에 출력할 수 있습니다.</p>
+          </div>
+          <div class="card">
+            <h3>결제 방식은?</h3>
+            <p class="micro">구독 결제로 사용이 가능합니다.</p>
+          </div>
+          <div class="card">
+            <h3>고객지원 시간은 어떻게 되나요?</h3>
+            <p class="micro">카카오톡 채널로 평일 8:00–17:00 운영합니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BIG CTA -->
+    <section id="reserve">
+      <div class="container">
+        <div class="cta">
+          <h2 style="margin:0">더 나은 운영, 더 여유로운 하루</h2>
+          <p style="margin:0;opacity:.95">시니아이로 준비 시간은 줄이고, 어르신과의 시간은 늘리세요.</p>
+          <div>
+            <a class="btn btn-ghost" style="background:#fff;color:var(--primary)" href="https://linktw.in/XrByBv">사전예약하기 ✉️</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container" style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>© 2024 시니아이</div>
+      <div style="display:flex;gap:10px">
+        <a class="pill" href="#pricing" style="text-decoration:none">이용 요금</a>
+        <a class="pill" href="#features" style="text-decoration:none">기능</a>
+        <a class="pill" href="https://linktw.in/XrByBv" style="text-decoration:none">문의하기</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Smooth scroll enhancement for older browsers
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('a[href^="#"]');
+      if(!a) return;
+      const id = a.getAttribute('href');
+      if(id.length <= 1) return;
+      const el = document.querySelector(id);
+      if(!el) return;
+      e.preventDefault();
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+      history.pushState(null, '', id);
+    }, {passive:false});
+  </script>
 
 <script>
-  /* =============================
-   * 1) CONFIGURE YOUR SCHEDULE (Mon–Fri grid)
-   * ============================= */
-  const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri"];
-
-  // Each row defines a time window; fill per-day cells with an activity or leave empty (undefined)
-  const schedule = [
-    { start:"08:00", end:"08:30",
-      Mon:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
-      Tue:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
-      Wed:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
-      Thu:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
-      Fri:{ type:"video", title:"Morning Focus Video", videoId:"5qap5aO4i9A" },
-    },
-    { start:"08:30", end:"08:45",
-      Mon:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
-      Tue:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
-      Wed:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
-      Thu:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
-      Fri:{ type:"game", title:"Brain Warm-up: Spot the Difference", gameId:"spot1" },
-    },
-    { start:"12:30", end:"13:00",
-      Mon:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
-      Tue:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
-      Wed:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
-      Thu:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
-      Fri:{ type:"video", title:"Mindfulness Clip", videoId:"DWcJFNfaw9c" },
-    },
-    { start:"15:00", end:"15:15",
-      Mon:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
-      Tue:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
-      Wed:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
-      Thu:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
-      Fri:{ type:"game", title:"Afternoon Game", gameId:"spot2" },
-    },
-    { start:"15:15", end:"15:30",
-      Mon:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
-      Tue:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
-      Wed:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
-      Thu:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
-      Fri:{ type:"game", title:"Afternoon Game", gameId:"spot1" },
-    },
+(() => {
+  const groups = [
+    { base: '#features', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
+    { base: '#how', singles: ['.sec-title', '.sec-desc'], list: '.steps .step' },
+    { base: '#containers', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
+    { base: '#pricing', singles: ['.sec-title', '.sec-desc'], list: '.pricing .tier' },
+    { base: 'faq-auto', singles: ['.sec-title'], list: '.grid .card' },
+    { base: '#reserve', singles: ['.cta'] }
   ];
 
-  /* =============================
-   * 2) CLOCK + STATUS UI
-   * ============================= */
-  const $ = sel => document.querySelector(sel);
-  const timeText = $("#timeText");
-  const dateText = $("#dateText");
-  const statusBadge = $("#statusBadge");
-  const statusText  = $("#statusText");
-  const activityTitle = $("#activityTitle");
-  const activityMount = $("#activityMount");
-
-  function renderScheduleTable(){
-    const thead = document.querySelector('#scheduleTable thead');
-    const tbody = document.querySelector('#scheduleTable tbody');
-    thead.innerHTML = `<tr><th>Time</th>${WEEKDAYS.map(d=>`<th>${d}</th>`).join('')}</tr>`;
-    tbody.innerHTML = schedule.map(s => {
-      const dayCells = WEEKDAYS.map(d => {
-        const a = s[d];
-        if(!a) return `<td style="color: var(--muted)">—</td>`;
-        const label = a.type === 'video' ? 'video' : a.type === 'game' ? 'game' : 'activity';
-        const detail = a.type === 'video' ? (a.videoId||'') : (a.gameId||'');
-        return `<td title="${label}${detail?': '+detail:''}">${label}</td>`;
-      }).join('');
-      return `<tr><td>${s.start}–${s.end}</td>${dayCells}</tr>`;
-    }).join('');
-  }
-  renderScheduleTable();
-
-  function pad(n){ return n.toString().padStart(2,'0'); }
-  function fmtDate(d){
-    return d.toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
-  }
-  function fmtTime(d){ return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
-  function dayShort(d){
-    // Robust, locale-independent weekday short name
-    const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    return names[d.getDay()];
-  }
-
-  let testClock = null; // Date override for testing
-  function now(){ return testClock ? new Date(testClock) : new Date(); }
-
-  function tick(){
-    const d = now();
-    timeText.textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    dateText.textContent = fmtDate(d);
-    const slot = findCurrentSlot(d);
-    if(slot){ setStatus('live', `Now playing: ${slot.title || niceTitle(slot)}`); mountActivity(slot); }
-    else { setStatus('idle', 'No scheduled activity right now'); mountPlaceholder(); }
-  }
-
-  function setStatus(kind, text){
-    statusBadge.textContent = kind === 'live' ? 'Live' : 'Idle';
-    statusBadge.className = 'badge ' + (kind==='live' ? 'live' : 'idle');
-    statusText.textContent = text;
-  }
-
-  function niceTitle(s){
-    if(s.type==='video') return 'YouTube Video';
-    if(s.type==='game') return 'Mini Game';
-    return 'Activity';
-  }
-
-  function findCurrentSlot(d){
-    const t = fmtTime(d);
-    const day = dayShort(d);
-    if(!WEEKDAYS.includes(day)) return null; // skip weekends
-    for(const s of schedule){
-      if(s.start <= t && t < s.end){
-        const a = s[day];
-        if(a) return { ...a, start:s.start, end:s.end };
-      }
-    }
-    return null;
-  }
-
-  // Also allow skipping to the next slot (for demos)
-  function nextSlotAfter(d){
-    const curDay = dayShort(d);
-    const t = fmtTime(d);
-    const idx = WEEKDAYS.indexOf(curDay);
-
-    // slots later today first
-    if(idx !== -1){
-      const todaySlots = schedule.filter(s => s[WEEKDAYS[idx]] && s.start > t).sort((a,b)=>a.start.localeCompare(b.start));
-      if(todaySlots.length) return { date:new Date(d), slot: {...todaySlots[0][WEEKDAYS[idx]]}, time: todaySlots[0].start };
-    }
-    // else find the very next weekday with slots
-    for(let i=1;i<=7;i++){
-      const nd = new Date(d); nd.setDate(nd.getDate()+i);
-      const ds = dayShort(nd);
-      const di = WEEKDAYS.indexOf(ds);
-      if(di === -1) continue; // weekend
-      const daySlots = schedule.filter(s => s[ds]).sort((a,b)=>a.start.localeCompare(b.start));
-      if(daySlots.length) return { date: nd, slot: {...daySlots[0][ds]}, time: daySlots[0].start };
-    }
-    return null;
-  }
-
-  /* =============================
-   * 3) ACTIVITY MOUNTING
-   * ============================= */
-  let mountedKey = '';
-  function mountActivity(s){
-    const key = JSON.stringify({t:s.type, i:s.videoId||s.gameId, ttl:s.title});
-    if(key === mountedKey) return; // avoid remounting every tick
-    mountedKey = key;
-    activityTitle.textContent = s.title || niceTitle(s);
-
-    if(s.type === 'video'){
-      // Click-to-play wrapper so playback starts from a user gesture and stays inline
-      const containerId = 'yt_'+Math.random().toString(36).slice(2);
-      activityMount.innerHTML = `
-        <div id="${containerId}" class="activity-placeholder" style="position:relative; aspect-ratio:16/9; height:auto;">
-          <button id="btn_${containerId}" style="position:absolute; inset:0; display:grid; place-items:center; border:0; background:transparent; cursor:pointer">
-            <div style="padding:14px 18px; border-radius:999px; font-weight:700; border:1px solid rgba(255,255,255,0.3); background:rgba(0,0,0,0.35); backdrop-filter: blur(3px)">▶︎ Click to play</div>
-          </button>
-        </div>`;
-      const btn = document.getElementById('btn_'+containerId);
-      btn.addEventListener('click', ()=>{
-        const originParam = encodeURIComponent(location.origin || (location.protocol + '//' + location.host));
-        const url = `https://www.youtube.com/embed/${s.videoId}?enablejsapi=1&origin=${originParam}&rel=0&modestbranding=1&playsinline=1&autoplay=1&mute=1`;
-        document.getElementById(containerId).innerHTML = `
-          <iframe class="activity-window"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowfullscreen src="${url}"></iframe>
-          <div style="margin-top:8px;font-size:12px;color:var(--muted)">
-            If playback fails, <a href="https://www.youtube.com/watch?v=${s.videoId}" target="_blank" rel="noopener noreferrer">open on YouTube</a>.
-          </div>`;
-      }, { once:true });
-    } else if(s.type === 'game'){
-      if(s.gameId === 'spot1') mountSpotGame(level1);
-      else if(s.gameId === 'spot2') mountSpotGame(level2);
-      else activityMount.innerHTML = `<div class="activity-placeholder">Unknown game id: ${s.gameId}</div>`;
-    } else {
-      mountPlaceholder();
-    }
-  }
-
-  function mountPlaceholder(){
-    mountedKey='';
-    activityTitle.textContent = 'No Activity';
-    activityMount.innerHTML = `<div class="activity-placeholder">Nothing scheduled. Use the Preview controls to jump around time, or add more items to the schedule.</div>`;
-  }
-
-  /* =============================
-   * 4) SIMPLE SPOT-THE-DIFFERENCE GAME
-   * ============================= */
-  function mountSpotGame(level){
-    const { svgLeft, svgRight, hotspots } = level;
-    activityMount.innerHTML = `
-      <div class="game-wrap">
-        <div class="progress"><span id="foundCount">0</span> / ${hotspots.length} differences found</div>
-        <div class="boards">
-          <div class="board" id="boardL">${svgLeft}</div>
-          <div class="board" id="boardR">${svgRight}</div>
-        </div>
-        <div class="hint">Hint: Click the <em>right</em> image where something looks different.</div>
-      </div>`;
-
-    const boardR = document.getElementById('boardR');
-    const found = new Set();
-
-    // Place invisible hotspot hit-areas over the right image
-    hotspots.forEach((h, idx) => {
-      const el = document.createElement('div');
-      el.style.position = 'absolute';
-      el.style.left = (h.x*100)+'%';
-      el.style.top = (h.y*100)+'%';
-      el.style.width = (h.r*200)+'%';
-      el.style.height = (h.r*200)+'%';
-      el.style.transform = 'translate(-50%, -50%)';
-      el.style.cursor = 'crosshair';
-      el.style.borderRadius = '50%';
-      el.style.background = 'rgba(255,255,255,0)';
-      el.setAttribute('data-idx', idx);
-      el.addEventListener('click', (e)=>{
-        const i = +e.currentTarget.getAttribute('data-idx');
-        if(found.has(i)) return;
-        found.add(i);
-        placeMarker(boardR, h.x, h.y, found.size);
-        document.getElementById('foundCount').textContent = found.size;
-        if(found.size === hotspots.length){
-          const p = document.querySelector('.progress');
-          p.innerHTML = `<span class="success">Great! You found all ${hotspots.length}.</span>`;
-        }
-      });
-      boardR.appendChild(el);
+  function findFaqSections() {
+    const secs = Array.from(document.querySelectorAll('section'));
+    return secs.filter(sec => {
+      const t = sec.querySelector('.sec-title');
+      return t && t.textContent && t.textContent.includes('자주 묻는 질문');
     });
   }
 
-  function placeMarker(container, x, y, n){
-    const m = document.createElement('div');
-    m.className = 'marker';
-    m.style.left = (x*100)+'%';
-    m.style.top = (y*100)+'%';
-    m.textContent = n;
-    container.appendChild(m);
-  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('in');
+      io.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
 
-  // Two small levels using inline SVG; right image has subtle differences.
-  const level1 = {
-    svgLeft: simpleCitySVG(false),
-    svgRight: simpleCitySVG(true),
-    hotspots: [ // relative positions (0..1)
-      {x:0.22, y:0.50, r:0.04}, // window color
-      {x:0.55, y:0.35, r:0.05}, // sun vs moon
-      {x:0.78, y:0.70, r:0.05}, // tree crown size
-    ]
-  };
-  const level2 = {
-    svgLeft: simpleGardenSVG(false),
-    svgRight: simpleGardenSVG(true),
-    hotspots: [
-      {x:0.25, y:0.60, r:0.05}, // flower petal
-      {x:0.50, y:0.30, r:0.05}, // butterfly wing mark
-      {x:0.78, y:0.65, r:0.05}, // pot stripe
-      {x:0.40, y:0.78, r:0.05}, // rock missing
-    ]
-  };
+  groups.forEach(({ base, singles = [], list }) => {
+    let bases = [];
+    if (base === 'faq-auto') {
+      bases = findFaqSections();
+    } else {
+      const el = document.querySelector(base);
+      bases = el ? [el] : [];
+    }
 
-  function simpleCitySVG(modified){
-    // modified = true adds differences on right image
-    return `
-    <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" aria-label="City"> 
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#243a6b"/>
-          <stop offset="100%" stop-color="#0f1835"/>
-        </linearGradient>
-      </defs>
-      <rect width="800" height="450" fill="url(#sky)"/>
-      ${modified ? '<circle cx="600" cy="90" r="30" fill="#cfd8ff"/>' : '<circle cx="600" cy="90" r="30" fill="#ffd16b"/>'}
-      <rect x="120" y="170" width="200" height="220" fill="#2b3c77"/>
-      <rect x="360" y="210" width="160" height="180" fill="#29366a"/>
-      <rect x="160" y="210" width="40" height="40" fill="${modified ? '#50e3a4' : '#ffe08a'}"/>
-      <rect x="420" y="250" width="40" height="40" fill="#a8b0d8"/>
-      <rect x="640" y="260" width="40" height="100" fill="#35518a"/>
-      <rect x="640" y="360" width="80" height="20" fill="#1e2a52"/>
-      <circle cx="700" cy="330" r="${modified ? 60 : 45}" fill="#2e8258"/>
-      <rect y="390" width="800" height="60" fill="#131a36"/>
-    </svg>`;
-  }
-
-  function simpleGardenSVG(modified){
-    return `
-    <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" aria-label="Garden">
-      <defs>
-        <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#283d7d"/>
-          <stop offset="100%" stop-color="#0e1a3a"/>
-        </linearGradient>
-      </defs>
-      <rect width="800" height="450" fill="url(#lg)"/>
-      <circle cx="120" cy="350" r="60" fill="#2e8258"/>
-      <circle cx="260" cy="360" r="50" fill="#2e8258"/>
-      <rect x="620" y="260" width="80" height="90" fill="#6b4f2a"/>
-      ${modified ? '<rect x="620" y="300" width="80" height="10" fill="#ffe08a"/>' : ''}
-      <circle cx="660" cy="250" r="40" fill="#2e8258"/>
-      <g>
-        <circle cx="250" cy="220" r="${modified ? 18 : 24}" fill="#ff7ab6"/>
-        <circle cx="250" cy="220" r="10" fill="#ffd1e6"/>
-        <rect x="246" y="228" width="8" height="20" fill="#6b4f2a"/>
-      </g>
-      <g>
-        <path d="M380,120 q20,10 0,20 q20,10 0,20" fill="#ffd16b"/>
-        ${modified ? '<circle cx="380" cy="150" r="6" fill="#0b1020"/>' : ''}
-      </g>
-      ${modified ? '' : '<circle cx="320" cy="360" r="14" fill="#a8b0d8"/>'}
-      <rect y="390" width="800" height="60" fill="#131a36"/>
-    </svg>`;
-  }
-
-  /* =============================
-   * 5) PREVIEW CONTROLS
-   * ============================= */
-  const testDate = document.getElementById('testDate');
-  const testTime = document.getElementById('testTime');
-  const applyTest = document.getElementById('applyTest');
-  const clearTest = document.getElementById('clearTest');
-  const skipBtn = document.getElementById('skipBtn');
-
-  applyTest.addEventListener('click', ()=>{
-    if(!testDate.value || !testTime.value){ alert('Pick a date and time'); return; }
-    const [y,m,d] = testDate.value.split('-').map(Number);
-    const [hh,mm] = testTime.value.split(':').map(Number);
-    testClock = new Date(y, m-1, d, hh, mm, 0);
-    tick();
+    bases.forEach((b) => {
+      singles.forEach(sel => {
+        b.querySelectorAll(sel).forEach(el => {
+          el.classList.add('reveal');
+          io.observe(el);
+        });
+      });
+      if (list) {
+        const items = b.querySelectorAll(list);
+        items.forEach((el, i) => {
+          el.style.setProperty('--d', `${Math.min(i, 6) * 70}ms`);
+          el.classList.add('reveal');
+          io.observe(el);
+        });
+      }
+    });
   });
-  clearTest.addEventListener('click', ()=>{ testClock = null; tick(); });
-  skipBtn.addEventListener('click', ()=>{
-    const start = now();
-    const next = nextSlotAfter(start);
-    if(!next){ alert('No upcoming slots in schedule.'); return; }
-    const nd = next.date; const [H,M] = next.time.split(':').map(Number);
-    nd.setHours(H, M, 0, 0);
-    testClock = nd; tick();
-  });
-
-  // Initialize clock & periodic updates
-  tick();
-  setInterval(tick, 1000 * 15); // refresh every 15s
+})();
 </script>
+
 </body>
 </html>
