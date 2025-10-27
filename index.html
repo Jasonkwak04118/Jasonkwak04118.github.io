@@ -419,6 +419,35 @@
   });
 })();
 </script>
+  <script>
+    // page view event is automatic; custom events for KPIs
+    const send = (name, props={}) => window.plausible && plausible(name, { props });
+  
+    // CTA: "무료로 시작하기"
+    document.querySelectorAll('a[href="#reserve"]').forEach(a=>{
+      a.addEventListener('click', ()=>send('CTA: FreeStart', {section:'hero'}));
+    });
+  
+    // CTA: 유료 사전예약 (external)
+    const pro = document.querySelector('a[href^="https://linktw.in"]');
+    pro && pro.addEventListener('click', ()=>send('CTA: ProPreorder', {plan:'pro'}));
+  
+    // Outbound link clicks (generic)
+    document.addEventListener('click', e=>{
+      const a = e.target.closest('a[href]');
+      if(!a) return;
+      if (a.hostname !== location.hostname) send('OutboundLink', { href: a.href });
+    });
+  
+    // Scroll-depth (25/50/75/100%)
+    let maxP = 0;
+    addEventListener('scroll', ()=>{
+      const p = Math.round(100 * scrollY / (document.body.scrollHeight - innerHeight));
+      const marks = [25,50,75,100];
+      const hit = marks.find(m => p >= m && m > maxP);
+      if (hit){ send('ScrollDepth', { percent: hit }); maxP = hit; }
+    }, {passive:true});
+  </script>
 
 </body>
 </html>
