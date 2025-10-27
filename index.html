@@ -448,6 +448,32 @@
       if (hit){ send('ScrollDepth', { percent: hit }); maxP = hit; }
     }, {passive:true});
   </script>
+  <script>
+    async function log(event, props = {}) {
+      try {
+        await fetch('/api/collect', {
+          method: 'POST',
+          headers: {'content-type':'application/json'},
+          keepalive: true,
+          body: JSON.stringify({
+            event,
+            props: {
+              path: location.pathname,
+              utm_source: new URLSearchParams(location.search).get('utm_source'),
+              ...props
+            }
+          })
+        });
+      } catch {}
+    }
+  
+    // Mirror key Plausible events to your backend (optional but useful)
+    document.querySelectorAll('a[href="#reserve"]').forEach(a=>{
+      a.addEventListener('click', ()=>log('cta_free_start', {section:'hero'}));
+    });
+    const pro = document.querySelector('a[href^="https://linktw.in"]');
+    pro && pro.addEventListener('click', ()=>log('cta_pro_preorder', {plan:'pro'}));
+  </script>
 
 </body>
 </html>
