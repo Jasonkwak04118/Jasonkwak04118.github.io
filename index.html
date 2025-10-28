@@ -364,61 +364,62 @@
     }, {passive:false});
   </script>
 
-<script>
-(() => {
-  const groups = [
-    { base: '#features', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
-    { base: '#how', singles: ['.sec-title', '.sec-desc'], list: '.steps .step' },
-    { base: '#containers', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
-    { base: '#pricing', singles: ['.sec-title', '.sec-desc'], list: '.pricing .tier' },
-    { base: 'faq-auto', singles: ['.sec-title'], list: '.grid .card' },
-    { base: '#reserve', singles: ['.cta'] }
-  ];
+  <script>
+  (() => {
+    const groups = [
+      { base: '#features', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
+      { base: '#how', singles: ['.sec-title', '.sec-desc'], list: '.steps .step' },
+      { base: '#containers', singles: ['.sec-title', '.sec-desc'], list: '.grid .card' },
+      { base: '#pricing', singles: [''.concat('.sec-title'), '.sec-desc'], list: '.pricing .tier' },
+      { base: 'faq-auto', singles: ['.sec-title'], list: '.grid .card' },
+      { base: '#reserve', singles: ['.cta'] }
+    ];
 
-  function findFaqSections() {
-    const secs = Array.from(document.querySelectorAll('section'));
-    return secs.filter(sec => {
-      const t = sec.querySelector('.sec-title');
-      return t && t.textContent && t.textContent.includes('자주 묻는 질문');
-    });
-  }
-
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('in');
-      io.unobserve(entry.target);
-    });
-  }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
-
-  groups.forEach(({ base, singles = [], list }) => {
-    let bases = [];
-    if (base === 'faq-auto') {
-      bases = findFaqSections();
-    } else {
-      const el = document.querySelector(base);
-      bases = el ? [el] : [];
+    function findFaqSections() {
+      const secs = Array.from(document.querySelectorAll('section'));
+      return secs.filter(sec => {
+        const t = sec.querySelector('.sec-title');
+        return t && t.textContent && t.textContent.includes('자주 묻는 질문');
+      });
     }
 
-    bases.forEach((b) => {
-      singles.forEach(sel => {
-        b.querySelectorAll(sel).forEach(el => {
-          el.classList.add('reveal');
-          io.observe(el);
-        });
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
       });
-      if (list) {
-        const items = b.querySelectorAll(list);
-        items.forEach((el, i) => {
-          el.style.setProperty('--d', `${Math.min(i, 6) * 70}ms`);
-          el.classList.add('reveal');
-          io.observe(el);
-        });
+    }, { threshold: 0.12, rootMargin: '0px 0px -10% 0px' });
+
+    groups.forEach(({ base, singles = [], list }) => {
+      let bases = [];
+      if (base === 'faq-auto') {
+        bases = findFaqSections();
+      } else {
+        const el = document.querySelector(base);
+        bases = el ? [el] : [];
       }
+
+      bases.forEach((b) => {
+        singles.forEach(sel => {
+          b.querySelectorAll(sel).forEach(el => {
+            el.classList.add('reveal');
+            io.observe(el);
+          });
+        });
+        if (list) {
+          const items = b.querySelectorAll(list);
+          items.forEach((el, i) => {
+            el.style.setProperty('--d', `${Math.min(i, 6) * 70}ms`);
+            el.classList.add('reveal');
+            io.observe(el);
+          });
+        }
+      });
     });
-  });
-})();
-</script>
+  })();
+  </script>
+
   <script>
     // page view event is automatic; custom events for KPIs
     const send = (name, props={}) => window.plausible && plausible(name, { props });
@@ -448,6 +449,7 @@
       if (hit){ send('ScrollDepth', { percent: hit }); maxP = hit; }
     }, {passive:true});
   </script>
+
   <script>
     async function log(event, props = {}) {
       try {
@@ -471,9 +473,91 @@
     document.querySelectorAll('a[href="#reserve"]').forEach(a=>{
       a.addEventListener('click', ()=>log('cta_free_start', {section:'hero'}));
     });
-    const pro = document.querySelector('a[href^="https://linktw.in"]');
-    pro && pro.addEventListener('click', ()=>log('cta_pro_preorder', {plan:'pro'}));
+    const pro2 = document.querySelector('a[href^="https://linktw.in"]');
+    pro2 && pro2.addEventListener('click', ()=>log('cta_pro_preorder', {plan:'pro'}));
   </script>
+
+  <!-- === Step 5: First-party analytics heartbeats to /api/collect === -->
+  <script>
+  (function () {
+    const KEY = 'sess_id_v1';
+    const sid = (localStorage.getItem(KEY)) || (() => {
+      const s = cryptoRandom();
+      localStorage.setItem(KEY, s);
+      return s;
+    })();
+
+    const url = new URL(location.href);
+    const utm = {
+      utm_source:   url.searchParams.get('utm_source'),
+      utm_medium:   url.searchParams.get('utm_medium'),
+      utm_campaign: url.searchParams.get('utm_campaign')
+    };
+
+    const base = {
+      session_id: sid,
+      page_url: location.href,
+      referrer: document.referrer || null,
+      language: navigator.language || null,
+      screen_w: window.screen?.width || null,
+      screen_h: window.screen?.height || null,
+      ...utm
+    };
+
+    let start = Date.now();
+    let lastPing = start;
+    let pingTimer = null;
+
+    function send(event_type, extra) {
+      const elapsed_ms = Date.now() - start;
+      const body = JSON.stringify({ event_type, elapsed_ms, extra, ...base });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/collect', body);
+      } else {
+        fetch('/api/collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
+      }
+    }
+
+    // page_view
+    send('page_view');
+
+    // heartbeat every ~15s while visible
+    function startHeartbeats() {
+      if (pingTimer) return;
+      pingTimer = setInterval(() => {
+        const now = Date.now();
+        if (document.visibilityState === 'visible' && now - lastPing >= 15000) {
+          send('heartbeat', { since_last_ms: now - lastPing });
+          lastPing = now;
+        }
+      }, 5000);
+    }
+    function stopHeartbeats() {
+      if (pingTimer) {
+        clearInterval(pingTimer);
+        pingTimer = null;
+      }
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') startHeartbeats(); else stopHeartbeats();
+    });
+    startHeartbeats();
+
+    // on close
+    window.addEventListener('pagehide', () => send('page_close'));
+    window.addEventListener('beforeunload', () => send('page_close'));
+
+    function cryptoRandom() {
+      if (window.crypto?.getRandomValues) {
+        const a = new Uint32Array(4);
+        window.crypto.getRandomValues(a);
+        return Array.from(a).map(x => x.toString(16).padStart(8,'0')).join('');
+      }
+      return (Date.now().toString(16) + Math.random().toString(16).slice(2));
+    }
+  })();
+  </script>
+  <!-- === /Step 5 block === -->
 
 </body>
 </html>
