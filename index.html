@@ -451,31 +451,50 @@
   </script>
 
   <script>
-    async function log(event, props = {}) {
-      try {
-        await fetch('/api/collect', {
-          method: 'POST',
-          headers: {'content-type':'application/json'},
-          keepalive: true,
-          body: JSON.stringify({
-            event,
-            props: {
-              path: location.pathname,
-              utm_source: new URLSearchParams(location.search).get('utm_source'),
-              ...props
-            }
-          })
-        });
-      } catch {}
+  // Mirror key CTA events to first-party analytics endpoint with the same payload shape as heartbeats
+  function sendCollect(event_type, extra = {}) {
+    try {
+      // Re-use the same session id key as the heartbeat block
+      const KEY = 'sess_id_v1';
+      const sid = localStorage.getItem(KEY) || (() => {
+        const s = (Date.now().toString(16) + Math.random().toString(16).slice(2));
+        localStorage.setItem(KEY, s);
+        return s;
+      })();
+
+      const url = new URL(location.href);
+      const payload = {
+        event_type,
+        session_id: sid,
+        page_url: location.href,
+        referrer: document.referrer || null,
+        language: navigator.language || null,
+        screen_w: window.screen?.width || null,
+        screen_h: window.screen?.height || null,
+        utm_source: url.searchParams.get('utm_source'),
+        utm_medium: url.searchParams.get('utm_medium'),
+        utm_campaign: url.searchParams.get('utm_campaign'),
+        extra
+      };
+
+      fetch('/api/collect', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        keepalive: true,
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      // no-op
     }
-  
-    // Mirror key Plausible events to your backend (optional but useful)
-    document.querySelectorAll('a[href="#reserve"]').forEach(a=>{
-      a.addEventListener('click', ()=>log('cta_free_start', {section:'hero'}));
-    });
-    const pro2 = document.querySelector('a[href^="https://linktw.in"]');
-    pro2 && pro2.addEventListener('click', ()=>log('cta_pro_preorder', {plan:'pro'}));
-  </script>
+  }
+
+  // Mirror key Plausible events to your backend (CTA examples)
+  document.querySelectorAll('a[href="#reserve"]').forEach(a=>{
+    a.addEventListener('click', ()=>sendCollect('cta_free_start', { section: 'hero' }));
+  });
+  const pro2 = document.querySelector('a[href^="https://linktw.in"]');
+  pro2 && pro2.addEventListener('click', ()=>sendCollect('cta_pro_preorder', { plan: 'pro' }));
+</script>
 
   <!-- === Step 5: First-party analytics heartbeats to /api/collect === -->
   <script>
