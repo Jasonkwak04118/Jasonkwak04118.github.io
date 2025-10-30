@@ -2,12 +2,14 @@
   "version": 2,
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/collect.js", "use": "@vercel/node" },
-    { "src": "public/**/*", "use": "@vercel/static" }
+    { "src": "api/**/*.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/api/collect", "dest": "/api/collect" },
-    { "src": "/api/(.*)",   "dest": "/api/$1" },
-    { "src": "/(.*)",       "dest": "/index.html" }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+
+    { "src": "/public/(.*)", "dest": "/public/$1" },
+    { "src": "/(.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map|txt|woff2?|ttf))", "dest": "/$1" },
+
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
