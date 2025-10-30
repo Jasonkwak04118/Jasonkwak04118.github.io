@@ -1,125 +1,182 @@
-// /api/collect_v2.js
+// /api/collect.js
+// Handles analytics + form submissions with graceful fallbacks.
+
+const KNOWN_FIELDS = new Set([
+  'event_type','event','session_id','page_url','referrer',
+  'utm_source','utm_medium','utm_campaign',
+  'language','screen_w','screen_h','elapsed_ms','extra'
+]);
+
+function cors(res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
 export default async function handler(req, res) {
+  cors(res);
+
+  // Health check
+  if (req.method === 'GET' && (req.query?.health === '1')) {
+    return res.status(200).json({
+      ok: true,
+      hasEnv: !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE
+    });
+  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   try {
-    // Health check
-    if (req.method === "GET" && req.query?.health === "1") {
-      return res.status(200).json({
-        ok: true,
-        hasEnv:
-          !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE,
-      });
-    }
-
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
     const body = await readJson(req);
-    const headers = req.headers || {};
 
+    // Normalize event name
+    const event_type = body?.event_type || body?.event;
+    if (!event_type) {
+      return res.status(400).json({ error: 'Missing event_type', got: body });
+    }
+
+    // Headers & enrichment
+    const h = req.headers || {};
     const ip =
-      headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      headers["x-real-ip"] ||
+      h['x-forwarded-for']?.split(',')[0]?.trim() ||
+      h['x-real-ip'] ||
       req.socket?.remoteAddress ||
       null;
-    const country = headers["x-vercel-ip-country"] || null;
-    const region = headers["x-vercel-ip-country-region"] || null;
-    const city = headers["x-vercel-ip-city"] || null;
-    const userAgent = headers["user-agent"] || null;
 
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
+    const user_agent = h['user-agent'] || null;
+    const country = h['x-vercel-ip-country'] || null;
+    const region  = h['x-vercel-ip-country-region'] || null;
+    const city    = h['x-vercel-ip-city'] || null;
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE) {
-      return res
-        .status(500)
-        .json({ error: "Supabase environment variables missing" });
+    // Known fields
+    const {
+      session_id, page_url, referrer,
+      utm_source, utm_medium, utm_campaign,
+      language, screen_w, screen_h, elapsed_ms
+    } = body || {};
+
+    // Collect everything else into extra (e.g., form fields)
+    const extra = { ...(body?.extra || {}) };
+    for (const [k, v] of Object.entries(body || {})) {
+      if (!KNOWN_FIELDS.has(k)) extra[k] = v;
     }
 
-    const event_type = body?.event_type;
-    const session_id = body?.session_id;
-
-    if (!event_type || !session_id) {
-      return res.status(400).json({
-        error: "Missing event_type or session_id",
-        got: body,
-      });
+    // Basic bot filter (still let page_close through to finalize sessions)
+    const ua = (user_agent || '').toLowerCase();
+    const looksLikeBot = /(bot|crawler|spider|preview|curl|statuscake|uptime|monitor)/.test(ua);
+    if (looksLikeBot && event_type !== 'page_close') {
+      return res.status(200).json({ ok: true, skipped: 'bot' });
     }
 
-    // 공통 페이로드
-    const payload = {
+    // Build the common row
+    const baseRow = {
       event_type,
-      session_id,
-      page_url: body?.page_url,
-      referrer: body?.referrer,
-      utm_source: body?.utm_source,
-      utm_medium: body?.utm_medium,
-      utm_campaign: body?.utm_campaign,
-      language: body?.language,
-      screen_w: body?.screen_w,
-      screen_h: body?.screen_h,
-      user_agent: userAgent,
+      session_id: session_id || null,
+      page_url: page_url || null,
+      referrer: referrer || null,
+      utm_source: utm_source || null,
+      utm_medium: utm_medium || null,
+      utm_campaign: utm_campaign || null,
+      language: language || null,
+      screen_w: numberOrNull(screen_w),
+      screen_h: numberOrNull(screen_h),
+      elapsed_ms: numberOrNull(elapsed_ms),
+      user_agent,
       ip,
       country,
       region,
       city,
-      extra: body?.extra || null,
+      extra: Object.keys(extra).length ? extra : null
     };
 
-    // event_type에 따라 테이블 분기
-    let table = "events";
-    let record = payload;
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
+    if (!SUPABASE_URL || !SERVICE_ROLE) {
+      return res.status(500).json({ error: 'Supabase environment variables missing' });
+    }
 
-    if (event_type === "form_submit") {
-      table = "reservations";
-      record = {
-        ...payload,
-        name: body?.extra?.name || null,
-        organization: body?.extra?.organization || null,
-        phone: body?.extra?.phone || null,
-        email: body?.extra?.email || null,
-        plan_type: body?.extra?.plan_type || null,
+    // Route: form submissions go to reservations (if available); analytics to events
+    const isForm = event_type === 'form_submit' || event_type === 'preorder_submitted';
+
+    if (isForm) {
+      // Build a reservations row projection (won’t fail if columns don’t exist; REST ignores extras)
+      const reservationsRow = {
+        ...baseRow,
+        name: extra.name ?? body?.name ?? null,
+        organization: extra.organization ?? body?.organization ?? null,
+        phone: extra.phone ?? body?.phone ?? null,
+        email: extra.email ?? body?.email ?? null,
+        plan_type: extra.plan_type ?? extra.plan ?? body?.plan ?? null
       };
+
+      // Try reservations first; if it 404s or perms fail, fall back to events with a structured extra
+      const r = await postRow(SUPABASE_URL, SERVICE_ROLE, 'reservations', reservationsRow);
+      if (r.ok) return res.status(200).json({ ok: true, table: 'reservations' });
+
+      // Fallback: record as an event so nothing is lost
+      const fallbackRow = {
+        ...baseRow,
+        event_type: 'form_submit',
+        extra: { form: reservationsRow }
+      };
+      const r2 = await postRow(SUPABASE_URL, SERVICE_ROLE, 'events', fallbackRow);
+      if (!r2.ok) {
+        return res.status(500).json({ error: 'Supabase insert failed', detail: r2.detail, tried: ['reservations','events'] });
+      }
+      return res.status(200).json({ ok: true, table: 'events_fallback' });
     }
 
-    const resp = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify(record),
-    });
+    // Analytics path (events)
+    const e = await postRow(SUPABASE_URL, SERVICE_ROLE, 'events', baseRow);
+    if (!e.ok) return res.status(500).json({ error: 'Supabase insert failed', detail: e.detail });
 
-    if (!resp.ok) {
-      const text = await resp.text();
-      return res.status(500).json({
-        error: "Supabase insert failed",
-        detail: text,
-      });
-    }
-
-    return res.status(200).json({ ok: true });
-  } catch (e) {
-    return res
-      .status(500)
-      .json({ error: "Server error", detail: String(e?.stack || e) });
+    return res.status(200).json({ ok: true, table: 'events' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error', detail: String(err?.stack || err) });
   }
+}
+
+function numberOrNull(v) {
+  if (typeof v === 'number') return v;
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", (chunk) => (data += chunk));
-    req.on("end", () => {
+    let data = '';
+    req.on('data', chunk => (data += chunk));
+    req.on('end', () => {
+      if (!data) return resolve({});
       try {
-        resolve(data ? JSON.parse(data) : {});
-      } catch (e) {
-        reject(new Error("Invalid JSON"));
+        resolve(JSON.parse(data));
+      } catch {
+        try { resolve(JSON.parse(String(data))); }
+        catch (e) { reject(new Error('Invalid JSON')); }
       }
     });
-    req.on("error", reject);
+    req.on('error', reject);
   });
+}
+
+async function postRow(url, key, table, row) {
+  try {
+    const resp = await fetch(`${url}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify([row]) // bulk format (array) is safest for PostgREST
+    });
+    if (!resp.ok) {
+      return { ok: false, status: resp.status, detail: await resp.text().catch(()=> '') };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, status: 0, detail: String(e) };
+  }
 }
