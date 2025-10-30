@@ -141,7 +141,7 @@
 <!-- Right: image with floating facts card -->
 <div class="relative reveal-right">
 <div class="relative rounded-3xl overflow-hidden shadow-2xl">
-<img alt="케어 서비스 장면" class="w-full h-[520px] object-cover" src="Cheerful Companions in Sunlit Serenade.png"/>
+<img alt="케어 서비스 장면" class="w-full h-[520px] object-cover" src="/Elders.png"/>
 </div>
 <div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-2xl shadow-xl p-6 border border-gray-100 w-[85%] max-w-[720px]">
 <div class="grid grid-cols-3 gap-6 text-center">
@@ -749,94 +749,29 @@
       });
     })();
   </script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const counters = document.querySelectorAll("#stats .font-semibold.text-gray-900");
-  const speed = 50; // smaller is slower
 
-  const animateCount = (el) => {
-    const targetText = el.innerText.replace(/[^0-9]/g, "");
-    if (!targetText) return;
-    const target = +targetText;
-    let count = 0;
-    const increment = Math.ceil(target / 120); // frames per count
 
-    const update = () => {
-      count += increment;
-      if (count >= target) {
-        el.innerText = el.dataset.original || el.innerText;
-      } else {
-        el.innerText = count.toLocaleString();
-        requestAnimationFrame(update);
-      }
-    };
-    el.dataset.original = el.innerText;
-    el.innerText = "0";
-    update();
-  };
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        animateCount(entry.target);
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.6 });
-
-  counters.forEach((counter) => observer.observe(counter));
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-      } else {
-        entry.target.classList.remove("visible");
-      }
-    });
-  }, { threshold: [0.35, 0.6] });
-
-  document.querySelectorAll('.fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
-});
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-      } else {
-        entry.target.classList.remove("visible");
-      }
-    });
-  }, { threshold: [0.35, 0.6] });
-
-  document.querySelectorAll('.fade-section-badge, .fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
-});
-</script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  // 무료 사전예약 버튼 클릭 추적
-  const freeBtn = document.querySelector('a.free-btn');
+  // 무료 사전예약 버튼 추적
+  const freeBtn = document.querySelector('a[href="#reserve"].free-btn');
   if (freeBtn) {
     freeBtn.addEventListener("click", () => {
       sendCollect("cta_free_click", { button: "free", section: "pricing" });
     });
   }
 
-  // 유료 사전예약 버튼 클릭 추적
-  const paidBtn = document.querySelector('a.pro-btn');
+  // 유료 사전예약 버튼 추적
+  const paidBtn = document.querySelector('a[href="#reserve"].pro-btn');
   if (paidBtn) {
     paidBtn.addEventListener("click", () => {
       sendCollect("cta_paid_click", { button: "paid", section: "pricing" });
     });
   }
 
-  // 예약 폼 제출 시 개인정보 전송
+  // 예약 폼 제출 추적
   const form = document.querySelector("#reservation-form");
   if (form) {
     form.addEventListener("submit", e => {
@@ -846,11 +781,20 @@ document.addEventListener("DOMContentLoaded", () => {
         organization: formData.get("organization"),
         phone: formData.get("phone"),
         email: formData.get("email"),
-        type: formData.get("plan_type") // free or paid
+        plan_type: formData.get("plan_type")
       };
       sendCollect("form_submit", payload);
     });
   }
+
+  // 외부 링크 클릭 (노션, 구글폼, 기타)
+  document.querySelectorAll('a[href^="http"]').forEach(link => {
+    link.addEventListener("click", e => {
+      const href = link.getAttribute("href");
+      const domain = new URL(href).hostname;
+      sendCollect("external_click", { href, domain });
+    });
+  });
 });
 </script>
 
