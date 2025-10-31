@@ -1,4 +1,5 @@
-// /api/collect.js (debugging why reservations isn't inserting)
+// /api/collect.js
+// Handles analytics + form submissions with graceful fallbacks.
 
 const KNOWN_FIELDS = new Set([
   'event_type','event','session_id','page_url','referrer',
@@ -15,6 +16,7 @@ function cors(res) {
 export default async function handler(req, res) {
   cors(res);
 
+  // Health check
   if (req.method === 'GET' && (req.query?.health === '1')) {
     return res.status(200).json({
       ok: true,
@@ -27,37 +29,46 @@ export default async function handler(req, res) {
   try {
     const body = await readJson(req);
 
+    // Normalize event name
     const event_type = body?.event_type || body?.event;
-    if (!event_type) return res.status(400).json({ error: 'Missing event_type', got: body });
+    if (!event_type) {
+      return res.status(400).json({ error: 'Missing event_type', got: body });
+    }
 
+    // Headers & enrichment
     const h = req.headers || {};
     const ip =
       h['x-forwarded-for']?.split(',')[0]?.trim() ||
       h['x-real-ip'] ||
       req.socket?.remoteAddress ||
       null;
+
     const user_agent = h['user-agent'] || null;
     const country = h['x-vercel-ip-country'] || null;
     const region  = h['x-vercel-ip-country-region'] || null;
     const city    = h['x-vercel-ip-city'] || null;
 
+    // Known fields
     const {
       session_id, page_url, referrer,
       utm_source, utm_medium, utm_campaign,
       language, screen_w, screen_h, elapsed_ms
     } = body || {};
 
+    // Collect everything else into extra (e.g., form fields)
     const extra = { ...(body?.extra || {}) };
     for (const [k, v] of Object.entries(body || {})) {
       if (!KNOWN_FIELDS.has(k)) extra[k] = v;
     }
 
+    // Basic bot filter (still let page_close through to finalize sessions)
     const ua = (user_agent || '').toLowerCase();
     const looksLikeBot = /(bot|crawler|spider|preview|curl|statuscake|uptime|monitor)/.test(ua);
     if (looksLikeBot && event_type !== 'page_close') {
       return res.status(200).json({ ok: true, skipped: 'bot' });
     }
 
+    // Build the common row
     const baseRow = {
       event_type,
       session_id: session_id || null,
@@ -84,9 +95,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Supabase environment variables missing' });
     }
 
+    // Route: form submissions go to reservations (if available); analytics to events
     const isForm = event_type === 'form_submit' || event_type === 'preorder_submitted';
 
     if (isForm) {
+      // Build a reservations row projection (won’t fail if columns don’t exist)
       const reservationsRow = {
         ...baseRow,
         name: extra.name ?? body?.name ?? null,
@@ -96,28 +109,24 @@ export default async function handler(req, res) {
         plan_type: extra.plan_type ?? extra.plan ?? extra.type ?? body?.plan ?? body?.type ?? null
       };
 
+      // Try reservations first; if it fails, fall back to events with embedded form data
       const r = await postRow(SUPABASE_URL, SERVICE_ROLE, 'reservations', reservationsRow);
       if (r.ok) return res.status(200).json({ ok: true, table: 'reservations' });
 
-      // Fallback with debug info
-      const fallbackRow = { ...baseRow, event_type: 'form_submit', extra: { form: reservationsRow } };
+      // Fallback: record as an event so nothing is lost
+      const fallbackRow = {
+        ...baseRow,
+        event_type: 'form_submit',
+        extra: { form: reservationsRow }
+      };
       const r2 = await postRow(SUPABASE_URL, SERVICE_ROLE, 'events', fallbackRow);
-
       if (!r2.ok) {
-        return res.status(500).json({
-          error: 'Supabase insert failed',
-          detail: r2.detail,
-          tried: ['reservations','events'],
-          reservations_error: r.detail
-        });
+        return res.status(500).json({ error: 'Supabase insert failed', detail: r2.detail, tried: ['reservations','events'] });
       }
-      return res.status(200).json({
-        ok: true,
-        table: 'events_fallback',
-        reservations_error: r.detail
-      });
+      return res.status(200).json({ ok: true, table: 'events_fallback' });
     }
 
+    // Analytics path (events)
     const e = await postRow(SUPABASE_URL, SERVICE_ROLE, 'events', baseRow);
     if (!e.ok) return res.status(500).json({ error: 'Supabase insert failed', detail: e.detail });
 
@@ -140,8 +149,12 @@ function readJson(req) {
     req.on('data', chunk => (data += chunk));
     req.on('end', () => {
       if (!data) return resolve({});
-      try { resolve(JSON.parse(data)); }
-      catch { try { resolve(JSON.parse(String(data))); } catch (e) { reject(new Error('Invalid JSON')); } }
+      try {
+        resolve(JSON.parse(data));
+      } catch {
+        try { resolve(JSON.parse(String(data))); }
+        catch (e) { reject(new Error('Invalid JSON')); }
+      }
     });
     req.on('error', reject);
   });
@@ -157,7 +170,7 @@ async function postRow(url, key, table, row) {
         'Authorization': `Bearer ${key}`,
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify([row])
+      body: JSON.stringify([row]) // bulk format (array) is safest for PostgREST
     });
     if (!resp.ok) {
       return { ok: false, status: resp.status, detail: await resp.text().catch(()=> '') };
