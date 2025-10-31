@@ -935,6 +935,48 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll('.fade-section-badge, .fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
 });
 </script>
+<!-- === SESSION + ANALYTICS HELPERS (add this before the preorder-form script) === -->
+<script>
+// --- Session helper ---
+function getSid() {
+  const KEY = 'sess_id_v1';
+  let sid = localStorage.getItem(KEY);
+  if (!sid) {
+    sid = (crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : (Date.now().toString(16) + Math.random().toString(16).slice(2));
+    localStorage.setItem(KEY, sid);
+  }
+  return sid;
+}
+
+// --- Send helper ---
+async function sendCollect(event_type, extra = {}) {
+  const payload = {
+    event_type,
+    session_id: getSid(),
+    page_url: location.href,
+    referrer: document.referrer || null,
+    language: navigator.language || null,
+    screen_w: window.innerWidth,
+    screen_h: window.innerHeight,
+    extra
+  };
+
+  const body = JSON.stringify(payload);
+  let sent = false;
+  try { sent = navigator.sendBeacon('/api/collect', body); } catch (_) {}
+  if (!sent) {
+    await fetch('/api/collect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body
+    });
+  }
+}
+</script>
+
 <script>
 (function () {
   const form = document.querySelector('#preorder-form');
