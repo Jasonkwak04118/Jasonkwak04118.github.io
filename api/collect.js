@@ -106,8 +106,9 @@ export default async function handler(req, res) {
         organization: extra.organization ?? body?.organization ?? null,
         phone: extra.phone ?? body?.phone ?? null,
         email: extra.email ?? body?.email ?? null,
-        plan_type: extra.plan_type ?? extra.plan ?? body?.plan ?? null
+        plan_type: extra.plan_type ?? extra.plan ?? extra.type ?? body?.plan ?? body?.type ?? null
       };
+  
 
       // Try reservations first; if it 404s or perms fail, fall back to events with a structured extra
       const r = await postRow(SUPABASE_URL, SERVICE_ROLE, 'reservations', reservationsRow);
