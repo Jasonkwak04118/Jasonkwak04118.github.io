@@ -935,5 +935,58 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll('.fade-section-badge, .fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
 });
 </script>
+<script>
+(function () {
+  const form = document.querySelector('#preorder-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    // If you WANT the native submit to go somewhere, keep action/target.
+    // We prevent immediate navigation so analytics can fire.
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const payload = {
+      // event + session/page info
+      event_type: 'form_submit',
+      session_id: localStorage.getItem('sess_id_v1'),
+      page_url: location.href,
+      referrer: document.referrer || null,
+
+      // form fields (normalize!)
+      name: fd.get('name') || null,
+      organization: fd.get('organization') || null,
+      phone: fd.get('phone') || null,
+      email: fd.get('email') || null,
+      plan_type: fd.get('plan_type') || fd.get('plan') || fd.get('type') || null
+    };
+
+    const body = JSON.stringify(payload);
+
+    // 1st try: sendBeacon (won’t be cancelled by navigation)
+    let sent = false;
+    try { sent = navigator.sendBeacon('/api/collect', body); } catch (_) {}
+
+    // Fallback if beacon unavailable
+    if (!sent) {
+      fetch('/api/collect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body
+      }).catch(()=>{});
+    }
+
+    // Give 200–300ms for the network queue, then continue
+    setTimeout(() => {
+      // If you have a thank-you page or external URL:
+      // location.href = form.getAttribute('action') || location.href + '#thanks';
+      // If you want native submit to proceed (keep server action):
+      form.submit();
+    }, 250);
+  });
+})();
+</script>
+
 </body>
 </html>
