@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     const isForm = event_type === 'form_submit' || event_type === 'preorder_submitted';
 
     if (isForm) {
-      // Build a reservations row projection (won’t fail if columns don’t exist; REST ignores extras)
+      // Build a reservations row projection (won’t fail if columns don’t exist)
       const reservationsRow = {
         ...baseRow,
         name: extra.name ?? body?.name ?? null,
@@ -108,9 +108,8 @@ export default async function handler(req, res) {
         email: extra.email ?? body?.email ?? null,
         plan_type: extra.plan_type ?? extra.plan ?? extra.type ?? body?.plan ?? body?.type ?? null
       };
-  
 
-      // Try reservations first; if it 404s or perms fail, fall back to events with a structured extra
+      // Try reservations first; if it fails, fall back to events with embedded form data
       const r = await postRow(SUPABASE_URL, SERVICE_ROLE, 'reservations', reservationsRow);
       if (r.ok) return res.status(200).json({ ok: true, table: 'reservations' });
 
