@@ -941,19 +941,20 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!form) return;
 
   form.addEventListener('submit', function (e) {
-    // If you WANT the native submit to go somewhere, keep action/target.
-    // We prevent immediate navigation so analytics can fire.
     e.preventDefault();
 
     const fd = new FormData(form);
+
+    // Create a session ID if not yet saved
+    const KEY = 'sess_id_v1';
+    let sid = localStorage.getItem(KEY);
+    if (!sid) { sid = Date.now().toString(16) + Math.random().toString(16).slice(2); localStorage.setItem(KEY, sid); }
+
     const payload = {
-      // event + session/page info
       event_type: 'form_submit',
-      session_id: localStorage.getItem('sess_id_v1'),
+      session_id: sid,
       page_url: location.href,
       referrer: document.referrer || null,
-
-      // form fields (normalize!)
       name: fd.get('name') || null,
       organization: fd.get('organization') || null,
       phone: fd.get('phone') || null,
@@ -963,11 +964,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const body = JSON.stringify(payload);
 
-    // 1st try: sendBeacon (won’t be cancelled by navigation)
+    // Try sendBeacon first
     let sent = false;
     try { sent = navigator.sendBeacon('/api/collect', body); } catch (_) {}
 
-    // Fallback if beacon unavailable
+    // Fallback to fetch
     if (!sent) {
       fetch('/api/collect', {
         method: 'POST',
@@ -977,16 +978,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }).catch(()=>{});
     }
 
-    // Give 200–300ms for the network queue, then continue
+    // Give time to send, then show success or redirect
     setTimeout(() => {
-      // If you have a thank-you page or external URL:
-      // location.href = form.getAttribute('action') || location.href + '#thanks';
-      // If you want native submit to proceed (keep server action):
-      form.submit();
+      alert('사전예약이 접수되었습니다. 곧 연락드릴게요!');
+      // Optional: redirect instead of alert
+      // location.href = '/#thanks';
     }, 250);
   });
 })();
 </script>
+
 
 </body>
 </html>
