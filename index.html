@@ -510,15 +510,9 @@
   }
 
   // Collect post helper (analytics + form submit)
-  async function postCollect(event_type, data){
-    var payload = Object.assign({ event_type: event_type, ts: Date.now() }, data || {});
-    try{
-      await fetch('/api/collect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    }catch(err){
-      // fail silently to avoid blocking UX
-      console.warn('collect failed', err);
-    }
-  }
+  function postCollect(event_type, data) {
+  return sendCollect(event_type, data || {});
+}
   window.postCollect = postCollect; // expose
 
   // Success modal
