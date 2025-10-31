@@ -799,7 +799,7 @@ document.addEventListener("DOMContentLoaded", () => {
         organization: formData.get("organization"),
         phone: formData.get("phone"),
         email: formData.get("email"),
-        plan_type: formData.get("plan_type")
+        plan_type: formData.get("plan_type") || formData.get("plan") || formData.get("type") || null
       };
       sendCollect("form_submit", payload);
     });
