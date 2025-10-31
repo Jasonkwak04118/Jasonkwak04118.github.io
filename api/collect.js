@@ -121,9 +121,9 @@ export default async function handler(req, res) {
       };
       const r2 = await postRow(SUPABASE_URL, SERVICE_ROLE, 'events', fallbackRow);
       if (!r2.ok) {
-        return res.status(500).json({ error: 'Supabase insert failed', detail: r2.detail, tried: ['reservations','events'] });
+        return res.status(500).json({ error: 'Supabase insert failed', detail: r2.detail, tried: ['reservations','events'], reservations_error: r.detail});
       }
-      return res.status(200).json({ ok: true, table: 'events_fallback' });
+      return res.status(200).json({ ok: true, table: 'events_fallback', reservations_error: r.detail});
     }
 
     // Analytics path (events)
