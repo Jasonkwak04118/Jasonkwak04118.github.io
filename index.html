@@ -1,217 +1,992 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>시니어아이 - 데이케어 수업 통합 플랫폼</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>시니아이 – 주야간보호 활동 운영, 더 쉬워지다</title>
+<meta content="주야간보호센터 활동 준비·진행·정리를 한 번에. 시니아이가 시간표에 맞춰서 알아서 진행합니다." name="description"/>
+<!-- Tailwind via CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { theme: { extend: {
+    colors: { brand: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } }
+  }}};</script>
 
-<body>
-  <!-- ✅ Your original structure preserved -->
-  <header class="header">
-    <h1>시니어아이</h1>
-    <p>데이케어센터 수업을 한 번에 관리하세요</p>
-  </header>
+<script defer="" src="/_vercel/insights/script.js"></script>
+<script data-domain="https://jasonkwak04118.github.io/" defer="" src="https://plausible.io/js/script.js"></script>
 
-  <section class="hero">
-    <div class="hero-content">
-      <h2>센터의 현실, 우리가 해결합니다</h2>
-      <p>디지털 기기 사용이 어려운 요양보호사들을 위한 쉽고 빠른 수업 플랫폼</p>
-      <div class="cta-buttons">
-        <button class="free-btn">무료버전 사전예약</button>
-        <button class="pro-btn">유료버전 사전예약</button>
-      </div>
-    </div>
-  </section>
 
-  <!-- ✅ Reservation Form -->
-  <section class="reservation">
-    <h2>사전 예약하기</h2>
-    <form id="preorder-form">
-      <label>기관명</label>
-      <input type="text" name="organization" required />
+<style>
+/* V30 utility: unified badge→title spacing */
+.kicker { display:inline-block; margin-bottom:2rem !important; } /* ~ mb-8 */
+@media (min-width:1024px){ .kicker { margin-bottom:2.25rem !important; } }
+</style>
+<style>html{scroll-behavior:smooth}</style>
+<style>
+/* Smooth tone transition */
+#preorder .preorder-card {
+  transition: background 500ms ease, box-shadow 300ms ease, filter 500ms ease, color 300ms ease;
+}
+#preorder[data-theme="free"] .preorder-card { filter: saturate(1) contrast(1); }
+#preorder[data-theme="pro"] .preorder-card { filter: saturate(1.15) contrast(1.03); }
+#preorder .preorder-card #preorder-plan-badge { transition: background-color 400ms ease, color 400ms ease; }
+</style><!-- Animations + Scroll Snap -->
+<style>
+    :root { --ease: ease-out; --header-h: 64px; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: transform 1.0s var(--ease), opacity 1.0s var(--ease); will-change: transform, opacity; }
+    .reveal.is-visible { opacity: 1; transform: none; }
 
-      <label>이름</label>
-      <input type="text" name="name" required />
+    .reveal-fade { opacity: 0; transform: none; transition: opacity 1.0s var(--ease); }
+    .reveal-fade.is-visible { opacity: 1; }
 
-      <label>이메일</label>
-      <input type="email" name="email" required />
+    .reveal-up { transform: translateY(30px); }
+    .reveal-up.is-visible { transform: translateY(0); }
 
-      <label>전화번호</label>
-      <input type="tel" name="phone" required />
+    .reveal-down { transform: translateY(-30px); }
+    .reveal-down.is-visible { transform: translateY(0); }
 
-      <input type="hidden" name="plan_type" id="plan_type" value="" />
-      <button type="submit" class="submit-btn">사전 예약</button>
-    </form>
-  </section>
+    .reveal-left { transform: translateX(-30px); }
+    .reveal-left.is-visible { transform: translateX(0); }
 
-  <footer class="footer">
-    <p>© 2025 시니어아이. All rights reserved.</p>
-  </footer>
+    .reveal-right { transform: translateX(30px); }
+    .reveal-right.is-visible { transform: translateX(0); }
 
-  <!-- ===================================================== -->
-  <!-- ✅ SESSION + ANALYTICS HELPERS -->
-  <!-- ===================================================== -->
-  <script>
-  // --- Create / get persistent session ID ---
-  function getSid() {
-    const KEY = 'sess_id_v1';
-    let sid = localStorage.getItem(KEY);
-    if (!sid) {
-      sid = (crypto && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : (Date.now().toString(16) + Math.random().toString(16).slice(2));
-      localStorage.setItem(KEY, sid);
+    .reveal-scale { opacity: 0; transform: scale(.94); transition: transform 1.0s var(--ease), opacity 1.0s var(--ease); }
+    .reveal-scale.is-visible { opacity: 1; transform: scale(1); }
+
+    [data-stagger]{ --stagger: 120ms; }
+    [data-stagger] > .reveal { transition-delay: calc(var(--i, 0) * var(--stagger, 160ms)); }
+
+    /* Snap sections (non-hero) */
+    html, body { height: 100%; }
+    body { scroll-snap-type: y proximity; }
+    .snap-section { scroll-snap-align: start; scroll-snap-stop: always; min-height: calc(100vh - var(--header-h)); display: flex; align-items: center; overflow: hidden; scroll-margin-top: var(--header-h); }
+
+    /* V13 larger typography for non-hero */
+    .snap-section h2 { font-size: clamp(2.5rem, 4.5vw, 3.5rem) !important; line-height: 1.1 !important; }
+    .snap-section .section-lead { font-size: clamp(1.125rem, 1.8vw, 1.5rem) !important; line-height: 1.6 !important; }
+    .snap-section .card-title { font-size: clamp(1.375rem, 2vw, 1.75rem) !important; line-height: 1.35 !important; }
+    .snap-section .card-body { font-size: clamp(1.0625rem, 1.6vw, 1.25rem) !important; line-height: 1.7 !important; }
+    .snap-section .step-num { font-size: clamp(3.75rem, 6vw, 5.5rem) !important; line-height: 1 !important; }
+    .snap-section li { font-size: clamp(1rem, 1.4vw, 1.125rem) !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .reveal-fade, .reveal-up, .reveal-down, .reveal-left, .reveal-right, .reveal-scale { opacity: 1 !important; transform: none !important; transition: none !important; }
     }
-    return sid;
+  </style>
+<style>
+.fade-section-title, .fade-subtitle {
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+.fade-section-title.visible {
+  opacity: 1;
+  transition: opacity 0.8s ease-in-out;
+}
+.fade-subtitle {
+  transition: opacity 1s ease-in-out 0.1s;
+}
+.fade-subtitle.visible {
+  opacity: 1;
+  transition: opacity 0.8s ease-in-out 0.1s;
+}
+</style>
+<style>
+.fade-section-badge {
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+.fade-section-badge.visible {
+  opacity: 1;
+  transition: opacity 0.8s ease-in-out;
+}
+</style>
+<style>
+/* V30 utility: unified badge→title spacing */
+.kicker { display:inline-block; margin-bottom:2rem !important; } /* ~ mb-8 */
+@media (min-width:1024px){ .kicker { margin-bottom:2.25rem !important; } }
+</style>
+<style>html{scroll-behavior:smooth}</style>
+<style>
+/* Smooth tone transition */
+#preorder .preorder-card {
+  transition: background 500ms ease, box-shadow 300ms ease, filter 500ms ease, color 300ms ease;
+}
+#preorder[data-theme="free"] .preorder-card { filter: saturate(1) contrast(1); }
+#preorder[data-theme="pro"] .preorder-card { filter: saturate(1.15) contrast(1.03); }
+#preorder .preorder-card #preorder-plan-badge { transition: background-color 400ms ease, color 400ms ease; }
+</style>
+</head>
+<body class="min-h-screen bg-white text-gray-900 pt-[var(--header-h)]">
+<!-- Header -->
+<header class="border-b border-gray-100 fixed top-0 left-0 right-0 bg-white/90 backdrop-blur z-50 reveal-down">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-500 flex items-center justify-center text-white font-bold">S</div>
+<span class="font-semibold">시니아이</span>
+</div>
+<nav class="hidden md:flex items-center gap-8 text-sm">
+<a class="hover:text-brand-600" href="#features">기능</a>
+<a class="hover:text-brand-600" href="#how">이용방법</a>
+<a class="hover:text-brand-600" href="#containers">모듈</a>
+<a class="hover:text-brand-600" href="#pricing">요금</a>
+</nav>
+<a class="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-brand-600 text-white hover:bg-brand-700 text-sm" href="#pricing">사전예약</a>
+</div>
+</header>
+<!-- Hero -->
+<section class="pt-20 pb-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-brand-50/50">
+<div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+<!-- Left: text -->
+<div class="reveal" data-stagger="">
+<span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-semibold reveal-up fade-section-badge kicker">새로운 운영의 표준</span>
+<h1 class="text-5xl lg:text-6xl font-bold leading-tight mt-4 mb-4 reveal-up">
+          데이케어센터 활동 운영,<br/>
+          모든 것을 <span class="text-brand-600">한 번에</span>.
+        </h1>
+<p class="text-lg text-gray-600 mb-8 leading-relaxed reveal-up">
+          영상 찾고, 기기 연결하고, 자료 준비하느라 시간 보내지 마세요. <br/>
+          시니아이가 시간표에 맞춰서 <b class="text-gray-900">알아서</b> 진행합니다.
+        </p>
+<div class="flex flex-col sm:flex-row gap-4 reveal-up">
+<a class="h-12 px-6 rounded-xl bg-brand-600 text-white flex items-center justify-center text-base shadow-lg hover:bg-brand-700 transition" data-cta="hero_free" href="#pricing">바로 예약하기</a>
+<a class="h-12 px-6 rounded-xl border-2 border-gray-200 flex items-center justify-center text-base hover:border-brand-300 transition" href="https://docs.google.com/forms/d/e/1FAIpQLSf0BRLQRIvO584NjEH-RjW6CnVf4yp4ynXgeX5fXhLv2mD2lA/viewform?usp=sharing&ouid=110147653849456082417" target="_blank" rel="noopener noreferrer">추가 혜택 받기</a>
+</div>
+<div class="flex items-center gap-6 text-sm text-gray-600 mt-5 reveal-up">
+<div class="flex items-center gap-2"><span class="text-lg text-gray-600 mb-8 leading-relaxed reveal-up"></span>준비 진행하면서 버려지는 시간의 91%를 아껴드립니다.</div>
+</div>
+</div>
+<!-- Right: image with floating facts card -->
+<div class="relative reveal-right">
+<div class="relative rounded-3xl overflow-hidden shadow-2xl">
+<img alt="케어 서비스 장면" class="w-full h-[520px] object-cover" src="./public/Elders.png"/>
+</div>
+<div class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-2xl shadow-xl p-6 border border-gray-100 w-[85%] max-w-[720px]">
+<div class="grid grid-cols-3 gap-6 text-center">
+<div>
+<div class="text-3xl md:text-4xl font-semibold text-brand-600 mb-1">+27%</div>
+<div class="text-sm text-gray-600">운영 효율</div>
+</div>
+<div>
+<div class="text-3xl md:text-4xl font-semibold text-brand-600 mb-1">91%</div>
+<div class="text-sm text-gray-600">시간 절약</div>
+</div>
+<div>
+<div class="text-3xl md:text-4xl font-semibold text-brand-600 mb-1">4.7점</div>
+<div class="text-sm text-gray-600">사용 후기</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Stats band under hero -->
+<section class="py-16 px-4 sm:px-6 lg:px-8 bg-white" id="stats">
+<div class="max-w-7xl mx-auto">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-8 text-center">
+<div>
+<div class="font-semibold text-gray-900" style="font-size:clamp(2.25rem,4vw,3rem); line-height:1.1;">32%</div>
+<div class="text-gray-600 mt-2">업무 스트레스 감소</div>
+</div>
+<div>
+<div class="font-semibold text-gray-900" style="font-size:clamp(2.25rem,4vw,3rem); line-height:1.1;">+28%</div>
+<div class="text-gray-600 mt-2">직원 만족도</div>
+</div>
+<div>
+<div class="font-semibold text-gray-900" style="font-size:clamp(2.25rem,4vw,3rem); line-height:1.1;">67%</div>
+<div class="text-gray-600 mt-2">반복업무 감소</div>
+</div>
+<div>
+<div class="font-semibold text-gray-900" style="font-size:clamp(2.25rem,4vw,3rem); line-height:1.1;">120시간</div>
+<div class="text-gray-600 mt-2">업무시간 절감</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Features (센터의 현실/우리가 해결합니다) -->
+<section class="snap-section py-16 px-4 sm:px-6 lg:px-8" id="features">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-10 reveal-up">
+<span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">센터의 현실</span>
+<h2 class="font-bold">센터의 현실, 우리가 해결합니다</h2>
+<p class="text-gray-600 mt-2 section-lead">준비 지연과 연결 오류를 줄이면, 어르신 집중도는 자연히 올라갑니다.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 180ms;">
+<div class="rounded-2xl p-6 bg-white shadow-sm border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">자꾸 시간이 새요</div>
+<div class="card-body text-gray-600 mt-2">복잡한 기기 설정에 매번 시간 낭비하시나요? <br /><b class="text-brand-600">이제 버튼 하나로 바로 시작하세요.</b></div>
+</div>
+<div class="rounded-2xl p-6 bg-white shadow-sm border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">TV 연결이 어려워요</div>
+<div class="card-body text-gray-600 mt-2">매번 연결할 때마다 ‘신호 없음’이 뜨셨나요? <br /><b class="text-brand-600">이제 별도 설정 없이 바로 수업을 시작하세요.</b></div>
+</div>
+<div class="rounded-2xl p-6 bg-white shadow-sm border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">콘텐츠가 흩어져 있어요</div>
+<div class="card-body text-gray-600 mt-2">유튜브, 폴더, USB에 나뉜 콘텐츠들—<br /><b class="text-brand-600">이제 한곳에서 바로 꺼내</b></div>
+</div>
+</div>
+</div>
+</section>
+<!-- How it works with stronger blue fade -->
+<section class="snap-section relative py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-brand-100" id="how">
+<div class="pointer-events-none absolute inset-0 opacity-60" style="background: radial-gradient(1200px 600px at 50% 90%, rgba(59,130,246,0.25), rgba(59,130,246,0) 65%);"></div>
+<div class="relative max-w-7xl mx-auto">
+<div class="text-center mb-10 reveal-up">
+<span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">이용 방법</span>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">이렇게 간단해요</h2>
+<p class="text-gray-600 section-lead fade-subtitle">설명이 필요없을정도로 사용하기 쉬워요.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 200ms;">
+<div class="bg-white rounded-3xl p-8 shadow border border-gray-100 reveal-up">
+<div class="step-num mb-4 text-brand-600">01</div>
+<div class="card-title font-semibold mb-2">무료 상담 예약</div>
+<p class="card-body text-gray-600">간편한 사전예약으로 사전혜택도 누려보세요</p>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow border border-gray-100 reveal-up">
+<div class="step-num mb-4 text-brand-600">02</div>
+<div class="card-title font-semibold mb-2">맞춤 준비</div>
+<p class="card-body text-gray-600">기관 스케쥴에 맞춤형으로 서비스를 준비해드립니다</p>
+</div>
+<div class="bg-white rounded-3xl p-8 shadow border border-gray-100 reveal-up">
+<div class="step-num mb-4 text-brand-600">03</div>
+<div class="card-title font-semibold mb-2">서비스 시작</div>
+<p class="card-body text-gray-600">출시 후, 서비스를 바로 사용하실 수 있습니다</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Modules -->
+<section class="snap-section py-16 px-4 sm:px-6 lg:px-8 bg-gray-50" id="containers">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-10 reveal-up">
+<span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">핵심 모듈</span>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">필수 기능만 담았습니다</h2>
+<p class="text-gray-600 section-lead fade-subtitle">가볍지만 든든합니다. 매일 쓰는 기능을 쉽게.</p>
+</div>
+<div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 120ms;">
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">인지 활동</div>
+<p class="card-body text-gray-600">퍼즐·맞춤 퀴즈·집중 훈련. 난이도 자동 추천.</p>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">안전 체조</div>
+<p class="card-body text-gray-600">가벼운 난이도로 따라하기 쉽게 구성.</p>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">노래/합창</div>
+<p class="card-body text-gray-600">자막·박자와 함께 생일잔치, 노래방 시간에 활용 가능.</p>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">오프라인 보조</div>
+<p class="card-body text-gray-600">인터넷 연결 문제 있을 시 사전 캐시 데이터로 앱처럼 사용.</p>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">고급 자동화 기능</div>
+<p class="card-body text-gray-600">일정표, 활동 로그, 일일 식단표, 월간 보고서 등 모두 한 번에 출력.</p>
+</div>
+<div class="bg-white rounded-2xl p-6 shadow border border-gray-100 reveal-scale">
+<div class="card-title font-semibold mb-1">어르신 친화 옵션</div>
+<p class="card-body text-gray-600">큰 글씨·자막·느린 박자 기본값으로 가독성/가시성 강화.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Pricing (not snapped) -->
+<section class="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-brand-50/40" id="pricing">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-10 reveal-up">
+<span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker kicker fade-section-badge">사전예약</span>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">사전예약하기</h2>
+<p class="text-gray-600 fade-subtitle">시니아이로 준비 시간은 줄이고, 어르신과의 시간은 늘리세요.</p>
+</div>
+<div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto" data-stagger="" style="--stagger: 180ms;">
+<div class="rounded-2xl p-6 bg-white shadow border-2 border-brand-300 reveal-right">
+<div class="text-sm font-semibold inline-flex px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 fade-section-badge">Free</div>
+<div class="text-4xl font-bold text-brand-600 mb-2">₩0</div>
+<ul class="text-gray-700 space-y-2">
+<li>✓ 기본 모듈 사용</li>
+<li>✓ 24시간 사용 가능</li>
+<li>✓ 매달 일정표, 시간표, 자동작업 및 출력</li>
+<li>✓ 상담 문의(8–17시)</li>
+</ul>
+<div style="height:100px;"></div>
+<a class="mt-5 inline-flex items-center justify-center h-14 px-6 rounded-xl border border-brand-300 hover:bg-brand-50 text-lg" href="#reserve">무료 버전 사전 예약</a>
+</div>
+<div class="rounded-2xl p-6 bg-white shadow border-2 border-brand-400 reveal-left">
+<div class="text-sm font-semibold inline-flex px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 fade-section-badge">Pro</div>
+<div class="text-4xl font-bold text-brand-600 mb-2">₩14,900/월</div>
+<ul class="text-gray-700 space-y-2">
+<li>✓ 프로 모듈 사용</li>
+<li>✓ 24시간 사용 가능</li>
+<li>✓ 매달 일정표, 시간표, 자동작업 및 출력</li>
+<li>✓ 상담 문의(8–17시)</li>
+<li><b class="text-brand-600">✓ 1:1 기술 지원</b></li>
+<li><b class="text-brand-600">✓ 추가 작업 자동화 컨설팅</b></li>
+<li><b class="text-brand-600">✓ 추가 기능·서비스 바로 사용 가능</b></li>
+</ul>
+<a class="mt-5 inline-flex items-center justify-center h-14 px-6 rounded-xl bg-brand-600 text-white hover:bg-brand-700 text-lg" data-cta="pro_preorder" href="reserve">유료 버전 사전 예약</a>
+</div>
+</div>
+</div>
+</section>
+<section aria-label="사전 예약" id="preorder" style="overflow:hidden; transition:max-height 0.5s ease; max-height:0;; scroll-margin-top: 72px;">
+<div class="preorder-wrapper" style="padding:24px 16px;"><div class="max-w-4xl mx-auto w-full"><div class="preorder-card" data-plan="free" style="margin:0 auto; border-radius:16px; border:1px solid rgba(0,0,0,0.08); box-shadow: 0 6px 20px rgba(0,0,0,0.06); background: var(--preorder-bg, linear-gradient(0deg,#f7fbff,#ffffff)); width:100%">
+<div class="preorder-header" style="padding:20px 20px 8px 20px;">
+<div style="display:flex; align-items:center; gap:8px; justify-content:space-between; flex-wrap:wrap;">
+<div style="display:flex; align-items:center; gap:10px;">
+<span id="preorder-plan-badge" style="font-weight:600; font-size:14px; padding:6px 10px; border-radius:999px; background: var(--preorder-badge-bg, #e8f1ff); color: var(--preorder-badge-fg, #0b5ed7);">선택한 플랜: 무료 버전</span>
+</div>
+<small id="preorder-hint" style="opacity:0.8;">아래 정보를 입력하시고 <strong>사전 예약</strong>을 눌러주세요.</small>
+</div>
+</div>
+<form id="preorder-form" novalidate="" style="padding:16px 20px 24px 20px; display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+<input name="event_type" type="hidden" value="preorder_submitted"/>
+<input id="preorder-plan" name="plan" type="hidden" value="free"/>
+<input aria-hidden="true" autocomplete="off" id="preorder-honeypot" name="honeypot" style="position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden;" tabindex="-1" type="text"/>
+<div style="grid-column: 1 / -1;">
+<label for="org" style="font-size:14px; font-weight:600;">기관명</label>
+<input id="org" name="org" placeholder="기관명을 입력해주세요" required="" style="margin-top:6px; width:100%; padding:12px; border:1px solid #d2d6dc; border-radius:10px; font-size:15px;" type="text"/>
+<div class="field-error" data-for="org" style="display:none; color:#c62828; font-size:12px; margin-top:4px;">기관명을 입력해주세요.</div>
+</div>
+<div>
+<label for="name" style="font-size:14px; font-weight:600;">담당자 성함</label>
+<input id="name" name="name" placeholder="담당자 성함을 입력해주세요" required="" style="margin-top:6px; width:100%; padding:12px; border:1px solid #d2d6dc; border-radius:10px; font-size:15px;" type="text"/>
+<div class="field-error" data-for="name" style="display:none; color:#c62828; font-size:12px; margin-top:4px;">담당자 성함을 입력해주세요.</div>
+</div>
+<div>
+<label for="email" style="font-size:14px; font-weight:600;">담당자 이메일</label>
+<input id="email" name="email" placeholder="example@company.co.kr" required="" style="margin-top:6px; width:100%; padding:12px; border:1px solid #d2d6dc; border-radius:10px; font-size:15px;" type="email"/>
+<div class="field-error" data-for="email" style="display:none; color:#c62828; font-size:12px; margin-top:4px;">올바른 이메일을 입력해주세요.</div>
+</div>
+<div style="grid-column: 1 / -1;">
+<label for="phone" style="font-size:14px; font-weight:600;">담당자 연락처</label>
+<input id="phone" inputmode="numeric" name="phone" pattern="^010-\d{4}-\d{4}$" placeholder="010-1234-5678" required="" style="margin-top:6px; width:100%; padding:12px; border:1px solid #d2d6dc; border-radius:10px; font-size:15px;" type="tel"/>
+<div class="field-error" data-for="phone" style="display:none; color:#c62828; font-size:12px; margin-top:4px;">연락처는 010-1234-5678 형식으로 입력해주세요.</div>
+</div>
+<div style="grid-column: 1 / -1; display:flex; align-items:flex-start; gap:10px;">
+<input id="consent" name="consent" required="" style="margin-top:3px;" type="checkbox"/>
+<div>
+<label for="consent" style="font-size:14px; font-weight:600;">개인정보 수집·이용에 동의합니다.<a id="privacy-link" style="margin-left:8px; font-size:13px; text-decoration:underline; color:#1d4ed8;" href="https://honey-cornucopia-31a.notion.site/29cc296eb44480b483e1ff6300cf5ecb?source=copy_link" target="_blank" rel="noopener noreferrer">개인정보처리방침</a></label>
+<div style="font-size:13px; opacity:0.8; margin-top:4px;">
+
+</div>
+<div class="field-error" data-for="consent" style="display:none; color:#c62828; font-size:12px; margin-top:4px;">개인정보 수집·이용 동의가 필요합니다.</div>
+</div>
+</div>
+<div style="grid-column: 1 / -1; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+<button disabled="" id="preorder-submit" style="padding:12px 18px; border-radius:10px; border:0; font-weight:700; font-size:15px; background: var(--preorder-cta-bg, #0b5ed7); color:white; cursor:not-allowed; opacity:0.6;" type="submit">사전 예약</button>
+
+</div>
+<p style="grid-column: 1 / -1; font-size:12px; opacity:0.7; margin:0;">제출 즉시 접수되며, 접수 내용은 내부 검토 후 순차 안내됩니다.</p>
+</form>
+</div></div></div>
+</section>
+<!-- Modal -->
+<div aria-hidden="true" id="preorder-modal" style="position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); z-index:9999;">
+<div aria-modal="true" role="dialog" style="background:white; border-radius:16px; max-width:420px; width:calc(100% - 32px); padding:24px; box-shadow: 0 24px 56px rgba(0,0,0,0.25);">
+<h3 style="margin:0 0 8px 0; font-size:20px; font-weight:800;">감사합니다!</h3>
+<p style="margin:0 0 16px 0; font-size:14px;">예약이 완료되었습니다. 빠르게 확인 후 연락드리겠습니다.</p>
+<button id="preorder-modal-close" style="padding:10px 16px; border-radius:10px; border:0; background:#0b5ed7; color:white; font-weight:700;">확인</button>
+</div>
+</div>
+<style>
+/* Plan-specific theme via CSS variables */
+#preorder[data-theme="free"] .preorder-card{
+  --preorder-bg: linear-gradient(0deg,#f3f8ff,#ffffff);
+  --preorder-badge-bg: #e8f1ff;
+  --preorder-badge-fg: #0b5ed7;
+  --preorder-cta-bg: #0b5ed7;
+}
+#preorder[data-theme="pro"] .preorder-card{
+  --preorder-bg: linear-gradient(0deg,#eaf1ff,#ffffff);
+  --preorder-badge-bg: #dce8ff;
+  --preorder-badge-fg: #0946a7;
+  --preorder-cta-bg: #0946a7;
+}
+
+/* Mobile optimization */
+@media (max-width: 720px){
+  #preorder form { grid-template-columns: 1fr; }
+}
+</style>
+<script>
+(function(){
+  // Utility: smooth open/close accordion
+  var preorder = document.getElementById('preorder');
+  function openPreorder(){
+    if(!preorder) return;
+    // measure content
+    var targetHeight = preorder.scrollHeight;
+    preorder.style.maxHeight = targetHeight + 'px';
+    // scroll into view
+    setTimeout(function(){ setTimeout(function(){ preorder.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200); }, 200);
+  }
+  function closePreorder(){
+    if(!preorder) return;
+    preorder.style.maxHeight = '0px';
   }
 
-  // --- Generic analytics collector ---
-  async function sendCollect(event_type, extra = {}) {
-    const payload = {
-      event_type,
-      session_id: getSid(),
+  // Enable submit after short delay for spam-guard
+  var submitBtn = null;
+  function enableSubmit(){
+    if(!submitBtn) submitBtn = document.getElementById('preorder-submit');
+    if(submitBtn){
+      submitBtn.disabled = false;
+      submitBtn.style.cursor = 'pointer';
+      submitBtn.style.opacity = '1';
+    }
+  }
+  setTimeout(enableSubmit, 1200);
+
+  // Attach click handlers to preorder CTA buttons by text content
+  function isPreorderButton(el){
+    if(!el) return false;
+    var txt = (el.textContent || '').replace(/\s+/g,'').trim();
+    return txt.includes('무료버전사전예약') || txt.includes('유료버전사전예약');
+  }
+  document.addEventListener('click', function(e){
+    var el = e.target;
+    if(!isPreorderButton(el) && el.closest){
+      var maybe = el.closest('a,button');
+      if(maybe && isPreorderButton(maybe)) el = maybe;
+      else return;
+    }
+    e.preventDefault();
+    var isPro = (el.textContent || '').includes('유료');
+    var theme = isPro ? 'pro' : 'free';
+    // Theme swap
+    preorder.setAttribute('data-theme', theme);
+    document.querySelector('.preorder-card')?.setAttribute('data-plan', isPro ? 'pro' : 'free');
+    // Badge + hidden
+    var badge = document.getElementById('preorder-plan-badge');
+    var hidden = document.getElementById('preorder-plan');
+    if(badge){ badge.textContent = '선택한 플랜: ' + (isPro ? '유료 버전' : '무료 버전'); }
+    if(hidden){ hidden.value = isPro ? 'pro' : 'free'; }
+    // Analytics: click event
+    try { postCollect('cta_' + (isPro ? 'pro' : 'free') + '_preorder', { plan: isPro ? 'pro' : 'free' }); } catch(e){}
+    // open accordion
+    openPreorder();
+  }, true);
+
+  // Input helpers: auto-format phone to 010-XXXX-XXXX
+  var phone = document.getElementById('phone');
+  if(phone){
+    phone.addEventListener('input', function(){
+      var v = phone.value.replace(/[^0-9]/g,'');
+      if(v.startsWith('010')){
+        if(v.length >= 11){
+          v = v.slice(0,11);
+          phone.value = v.replace(/^(010)(\d{4})(\d{4})$/, '$1-$2-$3');
+        }else if(v.length >= 8){
+          phone.value = '010-' + v.slice(3,7) + '-' + v.slice(7);
+        }else if(v.length >= 4){
+          phone.value = '010-' + v.slice(3);
+        }else{
+          phone.value = v;
+        }
+      }else{
+        phone.value = v;
+      }
+    });
+  }
+
+  // Validation on submit
+  var form = document.getElementById('preorder-form');
+  function showError(name, msg){
+    var el = document.querySelector('.field-error[data-for="'+name+'"]');
+    if(el){
+      if(msg) el.textContent = msg;
+      el.style.display = 'block';
+    }
+  }
+  function hideErrors(){
+    document.querySelectorAll('.field-error').forEach(function(el){ el.style.display = 'none'; });
+  }
+
+  // Privacy link placeholder (user to replace with Notion policy)
+  var privacyLink = document.getElementById('privacy-link');
+  if(privacyLink && !privacyLink.getAttribute('href')){
+    privacyLink.setAttribute('href', 'https://www.notion.so/your-privacy-policy-link');
+  }
+
+  // Collect post helper (analytics + form submit)
+  async function postCollect(event_type, data){
+    var payload = Object.assign({ event_type: event_type, ts: Date.now() }, data || {});
+    try{
+      await fetch('/api/collect', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    }catch(err){
+      // fail silently to avoid blocking UX
+      console.warn('collect failed', err);
+    }
+  }
+  window.postCollect = postCollect; // expose
+
+  // Success modal
+  function openModal(){
+    var modal = document.getElementById('preorder-modal');
+    if(!modal) return;
+    modal.style.display = 'flex';
+  }
+  function closeModal(){
+    var modal = document.getElementById('preorder-modal');
+    if(!modal) return;
+    modal.style.display = 'none';
+  }
+  document.getElementById('preorder-modal-close')?.addEventListener('click', function(){
+    closeModal();
+  });
+
+  if(form){
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      hideErrors();
+
+      // spam guard: honeypot
+      var hp = document.getElementById('preorder-honeypot');
+      if(hp && hp.value){ return; }
+
+      var org = document.getElementById('org').value.trim();
+      var name = document.getElementById('name').value.trim();
+      var email = document.getElementById('email').value.trim();
+      var phone = document.getElementById('phone').value.trim();
+      var consent = document.getElementById('consent').checked;
+      var plan = document.getElementById('preorder-plan').value;
+
+      var valid = true;
+      if(!org){ showError('org'); valid=false; }
+      if(!name){ showError('name'); valid=false; }
+      if(!email || !/^.+@.+\..+$/.test(email)){ showError('email'); valid=false; }
+      if(!/^010-\d{4}-\d{4}$/.test(phone)){ showError('phone'); valid=false; }
+      if(!consent){ showError('consent'); valid=false; }
+
+      if(!valid){
+        return;
+      }
+
+      var payload = {
+        event_type: 'preorder_submitted',
+        plan: plan,
+        org: org,
+        name: name,
+        email: email,
+        phone: phone
+      };
+
+      // analytics event
+      postCollect('preorder_submitted', { plan: plan });
+
+      // submit preorder data to same endpoint; on server you can route by event_type
+      try{
+        const res = await fetch('/api/collect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        // Server is responsible for notifying operator (productaurus@gmail.com)
+        // via email/slack/etc using the payload.
+      }catch(err){
+        console.warn('submit failed', err);
+      }
+
+      // Show modal and reset form
+      openModal();
+      form.reset();
+    });
+  }
+})();
+</script>
+<!-- Footer -->
+<footer class="py-10 text-center text-sm text-gray-500 reveal-fade">
+<div class="max-w-7xl mx-auto px-4">© 2025 시니아이. All rights reserved.</div>
+</footer>
+<!-- Smooth scroll -->
+<script>
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('a[href^="#"]');
+      if(!a) return;
+      const id = a.getAttribute('href');
+      if(id.length <= 1) return;
+      const el = document.querySelector(id);
+      if(!el) return;
+      e.preventDefault();
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+      history.pushState(null, '', id);
+    }, {passive:false});
+  </script>
+<!-- Analytics events -->
+<script>
+    function sendCollect(event_type, extra = {}) {
+      try {
+        const KEY = 'sess_id_v1';
+        const sid = localStorage.getItem(KEY) || (() => {
+          const s = (Date.now().toString(16) + Math.random().toString(16).slice(2));
+          localStorage.setItem(KEY, s);
+          return s;
+        })();
+        const url = new URL(location.href);
+        const payload = {
+          event_type,
+          session_id: sid,
+          page_url: location.href,
+          referrer: document.referrer || null,
+          language: navigator.language || null,
+          screen_w: window.screen?.width || null,
+          screen_h: window.screen?.height || null,
+          utm_source: url.searchParams.get('utm_source'),
+          utm_medium: url.searchParams.get('utm_medium'),
+          utm_campaign: url.searchParams.get('utm_campaign'),
+          extra
+        };
+        fetch('/api/collect', { method: 'POST', headers: { 'content-type':'application/json' }, keepalive: true, body: JSON.stringify(payload) });
+      } catch(e){}
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('a[href="#reserve"]').forEach(a=> a.addEventListener('click', ()=>sendCollect('cta_free_start', { section: 'hero' })));
+      const pro2 = document.querySelector('a[data-cta="pro_preorder"], a[href^="https://linktw.in"]');
+      pro2 && pro2.addEventListener('click', ()=>sendCollect('cta_pro_preorder', { plan: 'pro' }));
+      const res = document.querySelector('a[data-cta="reserve_preorder"]');
+      res && res.addEventListener('click', ()=>sendCollect('reserve_preorder', { from: 'cta' }));
+    });
+  </script>
+<!-- Engagement heartbeats -->
+<script>
+  (function () {
+    const KEY = 'sess_id_v1';
+    const sid = (localStorage.getItem(KEY)) || (() => {
+      const s = cryptoRandom();
+      localStorage.setItem(KEY, s);
+      return s;
+    })();
+
+    const url = new URL(location.href);
+    const utm = {
+      utm_source:   url.searchParams.get('utm_source'),
+      utm_medium:   url.searchParams.get('utm_medium'),
+      utm_campaign: url.searchParams.get('utm_campaign')
+    };
+
+    const base = {
+      session_id: sid,
       page_url: location.href,
       referrer: document.referrer || null,
       language: navigator.language || null,
-      screen_w: window.innerWidth,
-      screen_h: window.innerHeight,
-      extra
+      screen_w: window.screen?.width || null,
+      screen_h: window.screen?.height || null,
+      ...utm
+    };
+
+    let start = Date.now();
+    let lastPing = start;
+    let pingTimer = null;
+
+    function send(event_type, extra) {
+      const elapsed_ms = Date.now() - start;
+      const body = JSON.stringify({ event_type, elapsed_ms, extra, ...base });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/collect', body);
+      } else {
+        fetch('/api/collect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
+      }
+    }
+
+    send('page_view');
+    function startHeartbeats() {
+      if (pingTimer) return;
+      pingTimer = setInterval(() => {
+        const now = Date.now();
+        if (document.visibilityState === 'visible' && now - lastPing >= 15000) {
+          send('heartbeat', { since_last_ms: now - lastPing });
+          lastPing = now;
+        }
+      }, 5000);
+    }
+    function stopHeartbeats() { if (pingTimer) { clearInterval(pingTimer); pingTimer = null; } }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') startHeartbeats(); else stopHeartbeats(); });
+    startHeartbeats();
+    window.addEventListener('pagehide', () => send('page_close'));
+    window.addEventListener('beforeunload', () => send('page_close'));
+
+    function cryptoRandom() {
+      if (window.crypto?.getRandomValues) {
+        const a = new Uint32Array(4);
+        window.crypto.getRandomValues(a);
+        return Array.from(a).map(x => x.toString(16).padStart(8,'0')).join('');
+      }
+      return (Date.now().toString(16) + Math.random().toString(16).slice(2));
+    }
+  })();
+  </script>
+<!-- Reveal-on-scroll script -->
+<script>
+    (function(){
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const el = entry.target;
+          if (entry.isIntersecting) {
+            el.classList.add('is-visible');
+            if (el.hasAttribute('data-stagger')) {
+              const children = Array.from(el.querySelectorAll(':scope > .reveal, :scope > .reveal-up, :scope > .reveal-fade, :scope > .reveal-scale, :scope > .reveal-left, :scope > .reveal-right'));
+              const interval = el.getAttribute('data-stagger') || getComputedStyle(el).getPropertyValue('--stagger') || '160ms';
+              children.forEach((child, i) => {
+                child.style.setProperty('--stagger', interval);
+                child.style.setProperty('--i', i);
+                child.classList.add('reveal');
+                childObserver.observe(child);
+              });
+            }
+            observer.unobserve(el);
+          }
+        });
+      }, { root: null, rootMargin: '-10% 0px -10% 0px', threshold: 0.12 });
+
+      const childObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            childObserver.unobserve(entry.target);
+          }
+        });
+      }, { root: null, rootMargin: '-8% 0px -8% 0px', threshold: 0.15 });
+
+      document.querySelectorAll('.reveal, .reveal-up, .reveal-fade, .reveal-scale, .reveal-left, .reveal-right, .reveal-down, [data-stagger]').forEach(el => {
+        if (!el.classList.contains('reveal') &&
+            !el.classList.contains('reveal-up') &&
+            !el.classList.contains('reveal-fade') &&
+            !el.classList.contains('reveal-scale') &&
+            !el.classList.contains('reveal-left') &&
+            !el.classList.contains('reveal-right') &&
+            !el.classList.contains('reveal-down')) {
+          el.classList.add('reveal');
+        }
+        observer.observe(el);
+      });
+
+      window.addEventListener('load', () => {
+        const header = document.querySelector('header.reveal-down');
+        header && requestAnimationFrame(() => header.classList.add('is-visible'));
+      });
+    })();
+  </script>
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // 무료 사전예약 버튼 추적
+  const freeBtn = document.querySelector('a[href="#reserve"].free-btn');
+  if (freeBtn) {
+    freeBtn.addEventListener("click", () => {
+      sendCollect("cta_free_click", { button: "free", section: "pricing" });
+    });
+  }
+
+  // 유료 사전예약 버튼 추적
+  const paidBtn = document.querySelector('a[href="#reserve"].pro-btn');
+  if (paidBtn) {
+    paidBtn.addEventListener("click", () => {
+      sendCollect("cta_paid_click", { button: "paid", section: "pricing" });
+    });
+  }
+
+  // 예약 폼 제출 추적
+  const form = document.querySelector("#reservation-form");
+  if (form) {
+    form.addEventListener("submit", e => {
+      const formData = new FormData(form);
+      const payload = {
+        name: formData.get("name"),
+        organization: formData.get("organization"),
+        phone: formData.get("phone"),
+        email: formData.get("email"),
+        plan_type: formData.get("plan_type") || formData.get("plan") || formData.get("type") || null
+      };
+      sendCollect("form_submit", payload);
+    });
+  }
+
+  // 외부 링크 클릭 (노션, 구글폼, 기타)
+  document.querySelectorAll('a[href^="http"]').forEach(link => {
+    link.addEventListener("click", e => {
+      const href = link.getAttribute("href");
+      const domain = new URL(href).hostname;
+      sendCollect("external_click", { href, domain });
+    });
+  });
+});
+</script>
+
+<!-- Reveal-on-scroll script -->
+<script>
+    (function(){
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const el = entry.target;
+          if (entry.isIntersecting) {
+            el.classList.add('is-visible');
+            if (el.hasAttribute('data-stagger')) {
+              const children = Array.from(el.querySelectorAll(':scope > .reveal, :scope > .reveal-up, :scope > .reveal-fade, :scope > .reveal-scale, :scope > .reveal-left, :scope > .reveal-right'));
+              const interval = el.getAttribute('data-stagger') || getComputedStyle(el).getPropertyValue('--stagger') || '160ms';
+              children.forEach((child, i) => {
+                child.style.setProperty('--stagger', interval);
+                child.style.setProperty('--i', i);
+                child.classList.add('reveal');
+                childObserver.observe(child);
+              });
+            }
+            observer.unobserve(el);
+          }
+        });
+      }, { root: null, rootMargin: '-10% 0px -10% 0px', threshold: 0.12 });
+
+      const childObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            childObserver.unobserve(entry.target);
+          }
+        });
+      }, { root: null, rootMargin: '-8% 0px -8% 0px', threshold: 0.15 });
+
+      document.querySelectorAll('.reveal, .reveal-up, .reveal-fade, .reveal-scale, .reveal-left, .reveal-right, .reveal-down, [data-stagger]').forEach(el => {
+        if (!el.classList.contains('reveal') &&
+            !el.classList.contains('reveal-up') &&
+            !el.classList.contains('reveal-fade') &&
+            !el.classList.contains('reveal-scale') &&
+            !el.classList.contains('reveal-left') &&
+            !el.classList.contains('reveal-right') &&
+            !el.classList.contains('reveal-down')) {
+          el.classList.add('reveal');
+        }
+        observer.observe(el);
+      });
+
+      window.addEventListener('load', () => {
+        const header = document.querySelector('header.reveal-down');
+        header && requestAnimationFrame(() => header.classList.add('is-visible'));
+      });
+    })();
+  </script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const counters = document.querySelectorAll("#stats .font-semibold.text-gray-900");
+  const speed = 50; // smaller is slower
+
+  const animateCount = (el) => {
+    const targetText = el.innerText.replace(/[^0-9]/g, "");
+    if (!targetText) return;
+    const target = +targetText;
+    let count = 0;
+    const increment = Math.ceil(target / 120); // frames per count
+
+    const update = () => {
+      count += increment;
+      if (count >= target) {
+        el.innerText = el.dataset.original || el.innerText;
+      } else {
+        el.innerText = count.toLocaleString();
+        requestAnimationFrame(update);
+      }
+    };
+    el.dataset.original = el.innerText;
+    el.innerText = "0";
+    update();
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        animateCount(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.6 });
+
+  counters.forEach((counter) => observer.observe(counter));
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      } else {
+        entry.target.classList.remove("visible");
+      }
+    });
+  }, { threshold: [0.35, 0.6] });
+
+  document.querySelectorAll('.fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      } else {
+        entry.target.classList.remove("visible");
+      }
+    });
+  }, { threshold: [0.35, 0.6] });
+
+  document.querySelectorAll('.fade-section-badge, .fade-section-title, .fade-subtitle').forEach(el => observer.observe(el));
+});
+</script>
+<script>
+(function () {
+  const form = document.querySelector('#preorder-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const fd = new FormData(form);
+
+    // Create a session ID if not yet saved
+    const KEY = 'sess_id_v1';
+    let sid = localStorage.getItem(KEY);
+    if (!sid) { sid = Date.now().toString(16) + Math.random().toString(16).slice(2); localStorage.setItem(KEY, sid); }
+
+    const payload = {
+      event_type: 'form_submit',
+      session_id: sid,
+      page_url: location.href,
+      referrer: document.referrer || null,
+      name: fd.get('name') || null,
+      organization: fd.get('organization') || null,
+      phone: fd.get('phone') || null,
+      email: fd.get('email') || null,
+      plan_type: fd.get('plan_type') || fd.get('plan') || fd.get('type') || null
     };
 
     const body = JSON.stringify(payload);
+
+    // Try sendBeacon first
     let sent = false;
     try { sent = navigator.sendBeacon('/api/collect', body); } catch (_) {}
+
+    // Fallback to fetch
     if (!sent) {
-      try {
-        await fetch('/api/collect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          keepalive: true,
-          body
-        });
-      } catch (_) {}
-    }
-  }
-  </script>
-
-  <!-- ===================================================== -->
-  <!-- ✅ PAGE ANALYTICS: page_view / heartbeat / page_close -->
-  <!-- ===================================================== -->
-  <script>
-  (function () {
-    const sid = getSid();
-    const start = Date.now();
-    sendCollect('page_view');
-
-    // heartbeat every 15s
-    setInterval(() => {
-      const elapsed = Date.now() - start;
-      sendCollect('heartbeat', { elapsed_ms: elapsed });
-    }, 15000);
-
-    // page_close
-    window.addEventListener('beforeunload', () => {
-      const elapsed = Date.now() - start;
-      navigator.sendBeacon('/api/collect', JSON.stringify({
-        event_type: 'page_close',
-        session_id: sid,
-        page_url: location.href,
-        referrer: document.referrer || null,
-        elapsed_ms: elapsed,
-        language: navigator.language || null,
-        screen_w: window.innerWidth,
-        screen_h: window.innerHeight
-      }));
-    });
-  })();
-  </script>
-
-  <!-- ===================================================== -->
-  <!-- ✅ CTA Buttons: Free / Pro preorders -->
-  <!-- ===================================================== -->
-  <script>
-  (function () {
-    const freeBtn = document.querySelector('.free-btn');
-    const proBtn = document.querySelector('.pro-btn');
-    const planInput = document.querySelector('#plan_type');
-
-    if (freeBtn) {
-      freeBtn.addEventListener('click', () => {
-        planInput.value = 'free';
-        sendCollect('cta_free_preorder', { plan: 'free' });
-        document.querySelector('#preorder-form').scrollIntoView({ behavior: 'smooth' });
-      });
+      fetch('/api/collect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body
+      }).catch(()=>{});
     }
 
-    if (proBtn) {
-      proBtn.addEventListener('click', () => {
-        planInput.value = 'pro';
-        sendCollect('cta_pro_preorder', { plan: 'pro' });
-        document.querySelector('#preorder-form').scrollIntoView({ behavior: 'smooth' });
-      });
-    }
-  })();
-  </script>
+    // Give time to send, then show success or redirect
+    setTimeout(() => {
+      // Optional: redirect instead of alert
+      // location.href = '/#thanks';
+    }, 250);
+  });
+})();
+</script>
 
-  <!-- ===================================================== -->
-  <!-- ✅ FORM SUBMISSION HANDLER -->
-  <!-- ===================================================== -->
-  <script>
-  (function () {
-    const form = document.querySelector('#preorder-form');
-    if (!form) return;
-
-    let busy = false;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (busy) return;
-      busy = true;
-
-      const btn = form.querySelector('button[type="submit"]');
-      if (btn) {
-        btn.disabled = true;
-        btn.dataset._old = btn.textContent;
-        btn.textContent = '전송 중...';
-      }
-
-      const fd = new FormData(form);
-      const payload = {
-        event_type: 'form_submit',
-        session_id: getSid(),
-        page_url: location.href,
-        referrer: document.referrer || null,
-        name: fd.get('name') || null,
-        organization: fd.get('organization') || null,
-        phone: fd.get('phone') || null,
-        email: fd.get('email') || null,
-        plan_type: fd.get('plan_type') || fd.get('plan') || fd.get('type') || null
-      };
-
-      const body = JSON.stringify(payload);
-      let sent = false;
-      try { sent = navigator.sendBeacon('/api/collect', body); } catch (_) {}
-      if (!sent) {
-        fetch('/api/collect', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          keepalive: true,
-          body
-        }).catch(() => {});
-      }
-
-      setTimeout(() => {
-        alert('사전예약이 접수되었습니다. 곧 연락드릴게요!');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = btn.dataset._old || '사전 예약';
-        }
-        busy = false;
-      }, 250);
-    });
-  })();
-  </script>
 
 </body>
 </html>
