@@ -21,6 +21,20 @@
 .kicker { display:inline-block; margin-bottom:2rem !important; } /* ~ mb-8 */
 @media (min-width:1024px){ .kicker { margin-bottom:2.25rem !important; } }
 </style>
+<style>
+  /* Keep headings clean across platforms */
+  .title-keep { line-height:1.1; word-break: keep-all; }
+
+  /* Force one line at certain breakpoints (still wraps on mobile) */
+  .nowrap-md { white-space: normal; }
+  @media (min-width: 768px){ .nowrap-md { white-space: nowrap; } }
+
+  .nowrap-lg { white-space: normal; }
+  @media (min-width: 1024px){ .nowrap-lg { white-space: nowrap; } }
+
+  /* Never break inside this span (price, short labels) */
+  .nb { white-space: nowrap; }
+</style>
 <style>html{scroll-behavior:smooth}</style>
 <style>
 /* Smooth tone transition */
@@ -208,7 +222,7 @@
 <div class="max-w-7xl mx-auto">
 <div class="text-center mb-10 reveal-up">
 <span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">센터의 현실</span>
-<h2 class="font-bold">센터의 현실, 우리가 해결합니다</h2>
+<h2 class="font-bold title-keep nowrap-lg">센터의 현실, 우리가 해결합니다</h2>
 <p class="text-gray-600 mt-2 section-lead">준비 지연과 연결 오류를 줄이면, 어르신 집중도는 자연히 올라갑니다.</p>
 </div>
 <div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 180ms;">
@@ -233,7 +247,7 @@
 <div class="relative max-w-7xl mx-auto">
 <div class="text-center mb-10 reveal-up">
 <span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">이용 방법</span>
-<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">이렇게 간단해요</h2>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title title-keep nowrap-lg">이렇게 간단해요</h2>
 <p class="text-gray-600 section-lead fade-subtitle">설명이 필요없을정도로 사용하기 쉬워요.</p>
 </div>
 <div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 200ms;">
@@ -260,7 +274,7 @@
 <div class="max-w-7xl mx-auto">
 <div class="text-center mb-10 reveal-up">
 <span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker">핵심 모듈</span>
-<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">필수 기능만 담았습니다</h2>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title title-keep nowrap-lg">필수 기능만 담았습니다</h2>
 <p class="text-gray-600 section-lead fade-subtitle">가볍지만 든든합니다. 매일 쓰는 기능을 쉽게.</p>
 </div>
 <div class="grid md:grid-cols-3 gap-6" data-stagger="" style="--stagger: 120ms;">
@@ -296,7 +310,7 @@
 <div class="max-w-7xl mx-auto">
 <div class="text-center mb-10 reveal-up">
 <span class="inline-flex items-center gap-2 text-brand-700 bg-brand-50 px-3 py-1 rounded-full text-sm font-medium fade-section-badge kicker kicker fade-section-badge">사전예약</span>
-<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title">사전예약하기</h2>
+<h2 class="text-4xl lg:text-5xl font-bold mb-4 text-gray-900 fade-section-title title-keep nowrap-lg">사전예약하기</h2>
 <p class="text-gray-600 fade-subtitle">시니아이로 준비 시간은 줄이고, 어르신과의 시간은 늘리세요.</p>
 </div>
 <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto" data-stagger="" style="--stagger: 180ms;">
@@ -314,7 +328,8 @@
 </div>
 <div class="rounded-2xl p-6 bg-white shadow border-2 border-brand-400 reveal-left">
 <div class="text-sm font-semibold inline-flex px-2 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 fade-section-badge">Pro</div>
-<div class="text-4xl font-bold text-brand-600 mb-2">₩14,900/월</div>
+<div class="text-4xl font-bold text-brand-600 mb-2"><span class="nb">₩14,900/월</span></div>
+
 <ul class="text-gray-700 space-y-2">
 <li>✓ 프로 모듈 사용</li>
 <li>✓ 24시간 사용 가능</li>
