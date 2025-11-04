@@ -961,6 +961,14 @@ function getSid() {
 
 // --- Send helper ---
 async function sendCollect(event_type, extra = {}) {
+  const url = new URL(location.href);
+  const ref = url.searchParams.get('ref');               // <-- your email variant tag
+  const utm = {
+    utm_source:   url.searchParams.get('utm_source'),
+    utm_medium:   url.searchParams.get('utm_medium'),
+    utm_campaign: url.searchParams.get('utm_campaign'),
+    utm_content:  url.searchParams.get('utm_content')
+  };
   const payload = {
     event_type,
     session_id: getSid(),
@@ -969,7 +977,11 @@ async function sendCollect(event_type, extra = {}) {
     language: navigator.language || null,
     screen_w: window.innerWidth,
     screen_h: window.innerHeight,
-    extra
+    extra: {
+       ...extra,
+       ref,
+       ...utm
+     }
   };
 
   const body = JSON.stringify(payload);
