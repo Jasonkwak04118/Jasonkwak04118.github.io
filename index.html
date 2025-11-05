@@ -50,6 +50,51 @@
 }
 :root[data-theme="orange"] meta[name="theme-color"] { content:#f97316; }
 </style>
+<style>
+/* --- Extra orange overrides for the few remaining blues --- */
+
+/* 1) "이렇게 간단해요" section has an inline radial blue glow */
+:root[data-theme="orange"] #how .pointer-events-none {
+  /* replace rgba(59,130,246,0.25) with orange */
+  background: radial-gradient(
+    1200px 600px at 50% 90%,
+    rgba(234, 88, 12, 0.22),
+    rgba(234, 88, 12, 0) 65%
+  ) !important;
+}
+
+/* 2) Gradient utilities with opacity (e.g., bg-gradient-to-b from-white to-brand-50/40, /50) */
+:root[data-theme="orange"] .to-brand-50\/40 { /* brand-50 @ 40% */
+  --tw-gradient-to: rgb(255 237 213 / 0.4) !important; /* orange-50 */
+}
+:root[data-theme="orange"] .to-brand-50\/50 { /* brand-50 @ 50% */
+  --tw-gradient-to: rgb(255 237 213 / 0.5) !important;
+}
+
+/* If you ever use 'from-brand-50/..' add matches too */
+:root[data-theme="orange"] .from-brand-50\/40 {
+  --tw-gradient-from: rgb(255 237 213 / 0.4) !important;
+  --tw-gradient-to: rgb(255 237 213 / 0) !important; /* tailwind sets a transparent-to var */
+}
+:root[data-theme="orange"] .from-brand-50\/50 {
+  --tw-gradient-from: rgb(255 237 213 / 0.5) !important;
+  --tw-gradient-to: rgb(255 237 213 / 0) !important;
+}
+
+/* 3) Pricing section’s light blue wash (class uses to-brand-50/40) — belt & suspenders */
+:root[data-theme="orange"] #pricing {
+  background-image: linear-gradient(to bottom, #ffffff, rgba(255, 237, 213, 0.40)) !important;
+}
+
+/* 4) Subtle borders/badges that still look bluish */
+:root[data-theme="orange"] .border-brand-200 { border-color: #fed7aa !important; } /* orange-200 */
+:root[data-theme="orange"] .border-brand-100 { border-color: #ffedd5 !important; } /* orange-100 */
+
+/* 5) Buttons & rings (you have most already; adding a couple you might use) */
+:root[data-theme="orange"] .ring-brand-500 { --tw-ring-color: #f97316 !important; } /* orange-500 */
+:root[data-theme="orange"] .ring-brand-700 { --tw-ring-color: #c2410c !important; } /* orange-700 */
+:root[data-theme="orange"] .hover\:border-brand-300:hover { border-color:#fdba74 !important; } /* orange-300 */
+</style>
 
 
 <script defer="" src="/_vercel/insights/script.js"></script>
