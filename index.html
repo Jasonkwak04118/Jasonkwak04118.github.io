@@ -3,6 +3,18 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
+
+    <script>
+(function () {
+  const THEME_KEY = 'theme_pref';
+  const url = new URL(location.href);
+  const ref = url.searchParams.get('ref');
+  let theme = localStorage.getItem(THEME_KEY);
+  if (ref === 'utm') { theme = 'orange'; localStorage.setItem(THEME_KEY, theme); }
+  if (theme === 'orange') { document.documentElement.setAttribute('data-theme','orange'); }
+})();
+</script>
+
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>시니아이 – 주야간보호 활동 운영, 더 쉬워지다</title>
 <meta content="주야간보호센터 활동 준비·진행·정리를 한 번에. 시니아이가 시간표에 맞춰서 알아서 진행합니다." name="description"/>
@@ -11,6 +23,34 @@
 <script>tailwind.config = { theme: { extend: {
     colors: { brand: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } }
   }}};</script>
+
+<style>
+/* Orange theme overrides for existing Tailwind classes (placed after Tailwind) */
+:root[data-theme="orange"] .text-brand-600 { color: #ea580c !important; }   /* orange-600 */
+:root[data-theme="orange"] .text-brand-700 { color: #c2410c !important; }
+:root[data-theme="orange"] .bg-brand-50   { background-color: #fff7ed !important; } /* orange-50 */
+:root[data-theme="orange"] .bg-brand-100  { background-color: #ffedd5 !important; }
+:root[data-theme="orange"] .bg-brand-600  { background-color: #ea580c !important; }
+:root[data-theme="orange"] .bg-brand-700  { background-color: #c2410c !important; }
+:root[data-theme="orange"] .border-brand-300 { border-color:#fdba74 !important; }
+:root[data-theme="orange"] .border-brand-400 { border-color:#fb923c !important; }
+:root[data-theme="orange"] .border-brand-600 { border-color:#ea580c !important; }
+:root[data-theme="orange"] .from-brand-600 { --tw-gradient-from:#ea580c !important; --tw-gradient-to:rgb(234 88 12 / 0) !important; }
+:root[data-theme="orange"] .to-brand-400   { --tw-gradient-to:#fb923c !important; }
+:root[data-theme="orange"] .hover\:bg-brand-600:hover { background-color:#ea580c !important; }
+:root[data-theme="orange"] .hover\:bg-brand-700:hover { background-color:#c2410c !important; }
+:root[data-theme="orange"] .focus\:ring-brand-600:focus { --tw-ring-color:#ea580c !important; }
+
+/* Preorder card CSS variable theme swap (replacing your blue hexes) */
+:root[data-theme="orange"] #preorder .preorder-card{
+  --preorder-bg: linear-gradient(0deg,#fff7ed,#ffffff);
+  --preorder-badge-bg: #ffedd5;
+  --preorder-badge-fg: #9a3412;
+  --preorder-cta-bg: #ea580c;
+}
+:root[data-theme="orange"] meta[name="theme-color"] { content:#f97316; }
+</style>
+
 
 <script defer="" src="/_vercel/insights/script.js"></script>
 <script data-domain="https://jasonkwak04118.github.io/" defer="" src="https://plausible.io/js/script.js"></script>
