@@ -534,53 +534,66 @@
 
     function renderCurrentAndNext() {
       updateClock();
-
+    
       const { current, next } = findCurrentAndNextBlock();
-
+    
+      // ==== 지금 진행 중인 프로그램 ====
       if (!current) {
         currentBlockTimeEl.textContent = '현재 진행 중인 프로그램이 없습니다.';
         currentBlockTitleEl.textContent = '지금은 자유 시간입니다';
-        currentBlockActivityEl.textContent = '다음 프로그램 시간까지 어르신과 자유롭게 대화하거나 휴식 시간을 가지셔도 좋습니다.';
+        currentBlockActivityEl.textContent =
+          '다음 프로그램 시간까지 어르신과 자유롭게 대화하거나 휴식 시간을 가지셔도 좋습니다.';
       } else {
         currentBlockTimeEl.textContent = `${current.start_time} ~ ${current.end_time}`;
-        currentBlockTitleEl.textContent = current.label || '프로그램';
-
-        const slot = slotFromLabel(current.label);
+    
+        const slot = slotFromLabel(current.label); // 수업 1 / 2 / 3 에서 번호 추출
+        let titleText = current.label || '프로그램'; // 기본값: 수업 3 이런 라벨
+        let descText  = '시간표에 등록된 기본 활동입니다.';
+    
+        // monthly_programs에 해당 수업 슬롯이 있으면 → 그 activity를 제목으로 사용
         if (slot && monthlyActivities[slot]) {
-          currentBlockActivityEl.textContent = monthlyActivities[slot];
+          titleText = monthlyActivities[slot];              // 예: "인지 강화"
+          descText  = `수업 ${slot} 프로그램입니다.`;        // 아래 작은 설명
         } else if (slot && !monthlyActivities[slot]) {
-          currentBlockActivityEl.textContent = '오늘 수업 내용이 아직 등록되지 않았습니다.';
-        } else {
-          currentBlockActivityEl.textContent = '시간표에 등록된 기본 활동입니다.';
+          descText = '오늘 수업 내용이 아직 등록되지 않았습니다.';
         }
+    
+        currentBlockTitleEl.textContent    = titleText;
+        currentBlockActivityEl.textContent = descText;
       }
-
+    
+      // ==== 다음 프로그램 ====
       if (!next) {
         nextBlockBoxEl.textContent = '오늘 예정된 다음 프로그램이 없습니다.';
       } else {
-        const slot = slotFromLabel(next.label);
-        let activityText = '';
-        if (slot && monthlyActivities[slot]) {
-          activityText = `· 수업 ${slot} 프로그램: ${monthlyActivities[slot]}`;
-        } else if (slot) {
-          activityText = `· 수업 ${slot} 프로그램: 아직 미등록`;
+        const slotNext = slotFromLabel(next.label);
+        let nextTitle = next.label || '프로그램';
+        let nextDesc  = '다음 활동이 시간표에 등록되어 있습니다.';
+    
+        if (slotNext && monthlyActivities[slotNext]) {
+          // 다음 프로그램 카드도 같은 규칙 적용
+          nextTitle = monthlyActivities[slotNext];
+          nextDesc  = `수업 ${slotNext} 프로그램: ${monthlyActivities[slotNext]}`;
+        } else if (slotNext && !monthlyActivities[slotNext]) {
+          nextDesc = `수업 ${slotNext} 프로그램: 아직 미등록`;
         }
-
+    
         nextBlockBoxEl.innerHTML = `
           <div class="font-medium text-amber-800 mb-1">
             ${next.start_time} ~ ${next.end_time}
           </div>
           <div class="font-semibold text-slate-900 mb-1">
-            ${next.label}
+            ${nextTitle}
           </div>
           <div class="text-slate-700 text-sm">
-            ${activityText || '다음 활동이 시간표에 등록되어 있습니다.'}
+            ${nextDesc}
           </div>
         `;
       }
-
+    
       renderDrawerSchedule();
     }
+    
 
     function renderDrawerSchedule() {
       drawerScheduleEl.innerHTML = '';
