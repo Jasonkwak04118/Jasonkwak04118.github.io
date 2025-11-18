@@ -1,1 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>시니아이 – 관리자 페이지</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS v2 (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <!-- 상단 헤더 -->
+    <header class="space-y-3">
+      <h1 class="text-2xl font-bold text-slate-900">시니아이 관리자</h1>
+      <p class="text-sm text-slate-600">
+        센터별 <strong>일일계획표</strong>와 <strong>월간 프로그램 계획</strong>을 설정하는 페이지입니다.
+      </p>
+
+      <!-- 큰 버튼 2개: 섹션으로 스크롤 -->
+      <div class="flex flex-wrap gap-3">
+        <button
+          onclick="scrollToDaily()"
+          class="flex-1 sm:flex-none px-5 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
+        >
+          일일계획표
+        </button>
+        <button
+          onclick="scrollToMonthly()"
+          class="flex-1 sm:flex-none px-5 py-3 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+        >
+          월간프로그램계획
+        </button>
+      </div>
+
+      <!-- 공통 설정: 센터 이름 + 월 선택 -->
+      <div class="bg-white rounded-lg shadow p-4 flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[200px]">
+          <label for="centerName" class="block text-xs font-medium text-slate-700 mb-1">
+            센터 이름
+          </label>
+          <input
+            id="centerName"
+            type="text"
+            class="w-full border rounded px-3 py-2 text-sm"
+            placeholder="예: 시니아이 행복주야간보호센터"
+          />
+        </div>
+
+        <div>
+          <label for="monthInput" class="block text-xs font-medium text-slate-700 mb-1">
+            월간 프로그램 계획 월
+          </label>
+          <input
+            id="monthInput"
+            type="month"
+            class="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+    </header>
+
+    <!-- 일일계획표 섹션 -->
+    <section id="dailySection" class="bg-white rounded-lg shadow p-4 space-y-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">일일계획표</h2>
+          <p class="text-xs text-slate-500 mt-1">
+            센터에서 하루 동안 반복되는 기본 시간표입니다. (센터마다 다르게 설정 가능)
+          </p>
+        </div>
+        <div class="flex gap-2 flex-wrap items-center">
+          <button
+            id="dailyLoadBtn"
+            class="px-3 py-1.5 rounded bg-slate-100 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          >
+            일일계획표 불러오기
+          </button>
+          <button
+            id="dailySaveBtn"
+            class="px-3 py-1.5 rounded bg-blue-600 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            일일계획표 저장하기
+          </button>
+          <span id="dailyStatus" class="text-xs text-slate-500"></span>
+        </div>
+      </div>
+
+      <!-- 일일계획표 테이블 -->
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-xs sm:text-sm">
+          <thead>
+            <tr class="bg-slate-100">
+              <th class="border px-2 py-2 w-16">순서</th>
+              <th class="border px-2 py-2 w-28">시작시간</th>
+              <th class="border px-2 py-2 w-28">종료시간</th>
+              <th class="border px-2 py-2">활동</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTableBody">
+            <!-- JS에서 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-[11px] text-slate-500">
+        기본 템플릿: 8:00~10:20 [아침송영], 10:20~11:00 [아침조회], 11:00~12:00 [수업 1],
+        12:00~13:00 [점심 식사], 13:00~14:00 [휴식/오침], 14:00~15:00 [수업 2],
+        15:00~15:30 [간식], 15:30~16:00 [생활 교육], 16:00~17:00 [수업 3], 17:00~18:00 [송영].
+        센터별로 시간과 활동명을 자유롭게 수정 후 저장할 수 있습니다.
+      </p>
+    </section>
+
+    <!-- 월간 프로그램 계획 섹션 -->
+    <section id="monthlySection" class="bg-white rounded-lg shadow p-4 space-y-4">
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">월간 프로그램 계획</h2>
+          <p class="text-xs text-slate-500 mt-1">
+            선택한 월의 평일(월~금)에 대해 날짜별 수업 1·2·3의 활동을 입력합니다.
+            App 페이지에서는 일일계획표의 [수업 1/2/3]와 여기 입력된 활동을 합쳐서 사용합니다.
+          </p>
+        </div>
+        <div class="flex gap-2 flex-wrap items-center">
+          <button
+            id="monthlyLoadBtn"
+            class="px-3 py-1.5 rounded bg-slate-100 text-xs font-medium text-slate-700 hover:bg-slate-200"
+          >
+            월간 계획 불러오기
+          </button>
+          <button
+            id="monthlySaveBtn"
+            class="px-3 py-1.5 rounded bg-emerald-600 text-xs font-medium text-white hover:bg-emerald-700"
+          >
+            월간 계획 저장하기
+          </button>
+          <span id="monthlyStatus" class="text-xs text-slate-500"></span>
+        </div>
+      </div>
+
+      <!-- 월간 프로그램 테이블 -->
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse text-[11px] sm:text-xs">
+          <thead>
+            <tr class="bg-slate-100">
+              <th class="border px-2 py-2 text-center">월</th>
+              <th class="border px-2 py-2 text-center">화</th>
+              <th class="border px-2 py-2 text-center">수</th>
+              <th class="border px-2 py-2 text-center">목</th>
+              <th class="border px-2 py-2 text-center">금</th>
+            </tr>
+          </thead>
+          <tbody id="monthlyTableBody">
+            <!-- JS에서 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ==========================
+    // 0. Supabase 설정
+    // ==========================
+    const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co'; // <-- 본인 프로젝트 URL
+    const SUPABASE_ANON_KEY = 'YOUR_PUBLIC_ANON_KEY';        // <-- anon key
+
+    const TABLE_DAILY = 'daily_templates';
+    const TABLE_MONTHLY = 'monthly_programs';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ==========================
+    // 1. DOM 요소
+    // ==========================
+    const centerInput      = document.getElementById('centerName');
+    const monthInput       = document.getElementById('monthInput');
+    const dailyStatus      = document.getElementById('dailyStatus');
+    const monthlyStatus    = document.getElementById('monthlyStatus');
+    const dailyTableBody   = document.getElementById('dailyTableBody');
+    const monthlyTableBody = document.getElementById('monthlyTableBody');
+
+    const dailyLoadBtn    = document.getElementById('dailyLoadBtn');
+    const dailySaveBtn    = document.getElementById('dailySaveBtn');
+    const monthlyLoadBtn  = document.getElementById('monthlyLoadBtn');
+    const monthlySaveBtn  = document.getElementById('monthlySaveBtn');
+
+    // ==========================
+    // 2. 일일계획표 기본 템플릿
+    // ==========================
+    const defaultDailyBlocks = [
+      { block_index: 1, start_time: '08:00', end_time: '10:20', label: '아침송영' },
+      { block_index: 2, start_time: '10:20', end_time: '11:00', label: '아침조회' },
+      { block_index: 3, start_time: '11:00', end_time: '12:00', label: '수업 1' },
+      { block_index: 4, start_time: '12:00', end_time: '13:00', label: '점심 식사' },
+      { block_index: 5, start_time: '13:00', end_time: '14:00', label: '휴식/오침' },
+      { block_index: 6, start_time: '14:00', end_time: '15:00', label: '수업 2' },
+      { block_index: 7, start_time: '15:00', end_time: '15:30', label: '간식' },
+      { block_index: 8, start_time: '15:30', end_time: '16:00', label: '생활 교육' },
+      { block_index: 9, start_time: '16:00', end_time: '17:00', label: '수업 3' },
+      { block_index: 10, start_time: '17:00', end_time: '18:00', label: '송영' }
+    ];
+
+    // 현재 화면에 표시되는 일일계획표 상태
+    let currentDailyBlocks = JSON.parse(JSON.stringify(defaultDailyBlocks));
+
+    function renderDailyTableFromBlocks() {
+      dailyTableBody.innerHTML = '';
+      currentDailyBlocks
+        .sort((a, b) => a.block_index - b.block_index)
+        .forEach((block) => {
+          const tr = document.createElement('tr');
+          tr.dataset.blockIndex = block.block_index;
+
+          const idxTd = document.createElement('td');
+          idxTd.className = 'border px-2 py-1 text-center';
+          idxTd.textContent = block.block_index;
+          tr.appendChild(idxTd);
+
+          const startTd = document.createElement('td');
+          startTd.className = 'border px-2 py-1';
+          const startInput = document.createElement('input');
+          startInput.type = 'time';
+          startInput.value = block.start_time;
+          startInput.className = 'w-full border rounded px-1 py-1 text-xs';
+          startInput.dataset.field = 'start';
+          startTd.appendChild(startInput);
+          tr.appendChild(startTd);
+
+          const endTd = document.createElement('td');
+          endTd.className = 'border px-2 py-1';
+          const endInput = document.createElement('input');
+          endInput.type = 'time';
+          endInput.value = block.end_time;
+          endInput.className = 'w-full border rounded px-1 py-1 text-xs';
+          endInput.dataset.field = 'end';
+          endTd.appendChild(endInput);
+          tr.appendChild(endTd);
+
+          const labelTd = document.createElement('td');
+          labelTd.className = 'border px-2 py-1';
+          const labelInput = document.createElement('input');
+          labelInput.type = 'text';
+          labelInput.value = block.label;
+          labelInput.className = 'w-full border rounded px-2 py-1 text-xs';
+          labelInput.dataset.field = 'label';
+          labelTd.appendChild(labelInput);
+          tr.appendChild(labelTd);
+
+          dailyTableBody.appendChild(tr);
+        });
+    }
+
+    function readDailyBlocksFromDOM() {
+      const rows = dailyTableBody.querySelectorAll('tr[data-block-index]');
+      const result = [];
+      rows.forEach((tr) => {
+        const blockIndex = parseInt(tr.dataset.blockIndex, 10);
+        const startInput = tr.querySelector('input[data-field="start"]');
+        const endInput   = tr.querySelector('input[data-field="end"]');
+        const labelInput = tr.querySelector('input[data-field="label"]');
+
+        result.push({
+          block_index: blockIndex,
+          start_time: startInput.value || '00:00',
+          end_time:   endInput.value   || '00:00',
+          label:      labelInput.value || ''
+        });
+      });
+      currentDailyBlocks = result;
+    }
+
+    async function loadDailyTemplate() {
+      const centerName = centerInput.value.trim();
+      if (!centerName) {
+        alert('센터 이름을 먼저 입력하세요.');
+        return;
+      }
+
+      dailyStatus.textContent = '불러오는 중...';
+
+      const { data, error } = await supabaseClient
+        .from(TABLE_DAILY)
+        .select('block_index, start_time, end_time, label')
+        .eq('center_name', centerName)
+        .order('block_index', { ascending: true });
+
+      if (error) {
+        console.error(error);
+        dailyStatus.textContent = '불러오기 실패';
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        currentDailyBlocks = JSON.parse(JSON.stringify(defaultDailyBlocks));
+        renderDailyTableFromBlocks();
+        dailyStatus.textContent = '저장된 일일계획표가 없어 기본 템플릿을 불러왔습니다.';
+        return;
+      }
+
+      // DB에 있는 값이 있으면, block_index 기준으로 채워 넣기
+      currentDailyBlocks = defaultDailyBlocks.map((def) => {
+        const found = data.find((row) => row.block_index === def.block_index);
+        if (!found) return def;
+        return {
+          block_index: found.block_index,
+          start_time: (found.start_time || '').slice(0, 5), // 'HH:MM:SS' → 'HH:MM'
+          end_time:   (found.end_time   || '').slice(0, 5),
+          label:      found.label || ''
+        };
+      });
+
+      renderDailyTableFromBlocks();
+      dailyStatus.textContent = '불러오기 완료';
+    }
+
+    async function saveDailyTemplate() {
+      const centerName = centerInput.value.trim();
+      if (!centerName) {
+        alert('센터 이름을 먼저 입력하세요.');
+        return;
+      }
+
+      readDailyBlocksFromDOM();
+      dailyStatus.textContent = '저장 중...';
+
+      const payload = currentDailyBlocks.map((b) => ({
+        center_name: centerName,
+        block_index: b.block_index,
+        start_time: b.start_time,
+        end_time:   b.end_time,
+        label:      b.label
+      }));
+
+      const { error } = await supabaseClient
+        .from(TABLE_DAILY)
+        .upsert(payload, { onConflict: 'center_name,block_index' });
+
+      if (error) {
+        console.error(error);
+        dailyStatus.textContent = '저장 실패';
+      } else {
+        dailyStatus.textContent = '저장 완료';
+      }
+    }
+
+    // ==========================
+    // 3. 월간 프로그램 계획
+    // ==========================
+    function getWeekdaysForMonth(year, monthIndex) {
+      const days = [];
+      const date = new Date(year, monthIndex, 1);
+      const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+
+      while (date.getMonth() === monthIndex) {
+        const dow = date.getDay(); // 0=일, 1=월, ... 6=토
+        if (dow >= 1 && dow <= 5) {
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          days.push({
+            iso: `${yyyy}-${mm}-${dd}`,
+            yyyy,
+            mm,
+            dd,
+            dow,
+            dowLabel: DOW[dow]
+          });
+        }
+        date.setDate(date.getDate() + 1);
+      }
+      return days;
+    }
+
+    function renderMonthlyTable() {
+      monthlyTableBody.innerHTML = '';
+
+      const monthValue = monthInput.value;
+      if (!monthValue) return;
+
+      const [yearStr, monthStr] = monthValue.split('-');
+      const year = parseInt(yearStr, 10);
+      const monthIndex = parseInt(monthStr, 10) - 1;
+
+      const weekdays = getWeekdaysForMonth(year, monthIndex);
+
+      // 5개씩 끊어서 주(week) 행으로
+      const weeks = [];
+      for (let i = 0; i < weekdays.length; i += 5) {
+        weeks.push(weekdays.slice(i, i + 5));
+      }
+
+      weeks.forEach((week) => {
+        const tr = document.createElement('tr');
+
+        for (let col = 0; col < 5; col++) {
+          const td = document.createElement('td');
+          td.className = 'border align-top p-2 min-h-[90px]';
+
+          const day = week[col];
+          if (day) {
+            const header = document.createElement('div');
+            header.className = 'text-[11px] font-semibold mb-1';
+            header.textContent = `${day.mm}/${day.dd} (${day.dowLabel})`;
+            td.appendChild(header);
+
+            for (let slot = 1; slot <= 3; slot++) {
+              const slotLabel = document.createElement('div');
+              slotLabel.className = 'text-[11px] text-slate-500';
+              slotLabel.textContent = `수업 ${slot}`;
+              td.appendChild(slotLabel);
+
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.className = 'w-full border rounded px-1 py-1 mb-1 text-[11px]';
+              input.dataset.date = day.iso;
+              input.dataset.slot = String(slot);
+              input.id = `monthly-${day.iso}-${slot}`;
+              td.appendChild(input);
+            }
+          }
+
+          tr.appendChild(td);
+        }
+
+        monthlyTableBody.appendChild(tr);
+      });
+    }
+
+    async function loadMonthlyPlan() {
+      const centerName = centerInput.value.trim();
+      const monthValue = monthInput.value;
+      if (!centerName || !monthValue) {
+        alert('센터 이름과 월을 먼저 입력하세요.');
+        return;
+      }
+
+      monthlyStatus.textContent = '불러오는 중...';
+
+      renderMonthlyTable();
+
+      const [yearStr, monthStr] = monthValue.split('-');
+      const year = parseInt(yearStr, 10);
+      const monthIndex = parseInt(monthStr, 10) - 1;
+
+      const startDate = new Date(year, monthIndex, 1);
+      const endDate   = new Date(year, monthIndex + 1, 0);
+
+      const startISO = startDate.toISOString().slice(0, 10);
+      const endISO   = endDate.toISOString().slice(0, 10);
+
+      const { data, error } = await supabaseClient
+        .from(TABLE_MONTHLY)
+        .select('class_date, class_slot, activity')
+        .eq('center_name', centerName)
+        .gte('class_date', startISO)
+        .lte('class_date', endISO);
+
+      if (error) {
+        console.error(error);
+        monthlyStatus.textContent = '불러오기 실패';
+        return;
+      }
+
+      (data || []).forEach((row) => {
+        const id = `monthly-${row.class_date}-${row.class_slot}`;
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = row.activity || '';
+        }
+      });
+
+      monthlyStatus.textContent = '불러오기 완료';
+    }
+
+    async function saveMonthlyPlan() {
+      const centerName = centerInput.value.trim();
+      const monthValue = monthInput.value;
+      if (!centerName || !monthValue) {
+        alert('센터 이름과 월을 먼저 입력하세요.');
+        return;
+      }
+
+      monthlyStatus.textContent = '저장 중...';
+
+      const inputs = monthlyTableBody.querySelectorAll('input[data-date][data-slot]');
+      const rows = [];
+      inputs.forEach((input) => {
+        const activity   = input.value.trim();
+        const class_date = input.dataset.date;
+        const class_slot = parseInt(input.dataset.slot, 10);
+
+        rows.push({
+          center_name: centerName,
+          class_date,
+          class_slot,
+          activity: activity === '' ? null : activity
+        });
+      });
+
+      const { error } = await supabaseClient
+        .from(TABLE_MONTHLY)
+        .upsert(rows, { onConflict: 'center_name,class_date,class_slot' });
+
+      if (error) {
+        console.error(error);
+        monthlyStatus.textContent = '저장 실패';
+      } else {
+        monthlyStatus.textContent = '저장 완료';
+      }
+    }
+
+    // ==========================
+    // 4. 스크롤 이동 함수 (상단 버튼)
+    // ==========================
+    function scrollToDaily() {
+      document.getElementById('dailySection')
+        .scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function scrollToMonthly() {
+      document.getElementById('monthlySection')
+        .scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ==========================
+    // 5. 초기 설정 & 이벤트 연결
+    // ==========================
+    (function initMonthDefault() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      monthInput.value = `${yyyy}-${mm}`;
+    })();
+
+    // 일일계획표 기본 템플릿 렌더
+    renderDailyTableFromBlocks();
+    // 월간 프로그램 테이블 기본 렌더
+    renderMonthlyTable();
+
+    // 이벤트 바인딩
+    dailyLoadBtn.addEventListener('click', loadDailyTemplate);
+    dailySaveBtn.addEventListener('click', saveDailyTemplate);
+    monthlyLoadBtn.addEventListener('click', loadMonthlyPlan);
+    monthlySaveBtn.addEventListener('click', saveMonthlyPlan);
+    monthInput.addEventListener('change', renderMonthlyTable);
+  </script>
+</body>
+</html>
