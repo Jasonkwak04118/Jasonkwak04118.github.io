@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -63,9 +62,6 @@
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       z-index: 60;
     }
   </style>
@@ -193,7 +189,7 @@
   </aside>
 
   <!-- 센터 선택 오버레이 -->
-  <div id="center-overlay" class="hidden">
+  <div id="center-overlay" class="hidden flex items-center justify-center">
     <div class="max-w-sm w-full bg-white rounded-2xl shadow-xl px-5 py-6">
       <h2 class="text-lg font-semibold text-slate-900 mb-1">
         센터 이름을 입력해주세요
@@ -228,7 +224,7 @@
     // Supabase 연결 설정
     // ================================
     const SUPABASE_URL = 'https://cttqnwngksbrvtveoqpv.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0dHFud25na3NicnZ0dmVvcXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc2NzgsImV4cCI6MjA3NzE2MzY3OH0.IBtCyc01ptYUyDeEYx6rAo31IfdSiP3AgTRi8nAowrI'; // ← admin에서 사용한 anon public key와 동일하게
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0dHFud25na3NicnZ0dmVvcXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc2NzgsImV4cCI6MjA3NzE2MzY3OH0.IBtCyc01ptYUyDeEYx6rAo31IfdSiP3AgTRi8nAowrI';
 
     const TABLE_DAILY   = 'daily_templates';
     const TABLE_MONTHLY = 'monthly_programs';
@@ -359,11 +355,13 @@
     }
 
     function openCenterOverlay() {
+      if (!centerOverlayEl) return;
       centerOverlayEl.classList.remove('hidden');
-      setTimeout(() => centerInputOverlayEl.focus(), 50);
+      setTimeout(() => centerInputOverlayEl && centerInputOverlayEl.focus(), 50);
     }
 
     function closeCenterOverlay() {
+      if (!centerOverlayEl) return;
       centerOverlayEl.classList.add('hidden');
     }
 
