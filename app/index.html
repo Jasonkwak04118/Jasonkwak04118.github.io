@@ -1,1 +1,675 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>시니아이 – 센터 프로그램 화면</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="시니아이 센터별 프로그램 일정 안내 화면" />
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --app-main: #f0a223;
+      --app-main-dark: #d68f1f;
+      --app-main-soft: #fff2cb;
+      --app-bg: #fff9ef;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--app-bg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* 드로어 (오른쪽 슬라이드 패널) */
+    #drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 40;
+    }
+    #drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(360px, 100%);
+      height: 100%;
+      background: #ffffff;
+      box-shadow: -8px 0 24px rgba(15, 23, 42, 0.18);
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+    #drawer.open {
+      transform: translateX(0);
+    }
+
+    /* 센터 선택 오버레이 */
+    #center-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 상단 헤더 -->
+  <header class="w-full bg-white/90 backdrop-blur border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-white font-bold"
+             style="background: linear-gradient(135deg, #f0a223, #f59e0b);">
+          S
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-slate-900">
+            시니아이 프로그램 화면
+          </span>
+          <span id="header-center-name" class="text-xs text-slate-500">
+            센터를 선택해주세요
+          </span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-change-center"
+                class="text-[11px] px-3 py-1.5 rounded-full border border-slate-200 text-slate-700 hover:border-[var(--app-main)] hover:text-[var(--app-main-dark)]">
+          센터 변경
+        </button>
+        <button id="btn-open-drawer"
+                class="hidden sm:inline-flex text-[11px] px-3 py-1.5 rounded-full text-white font-medium"
+                style="background: linear-gradient(135deg, #f0a223, #f59e0b);">
+          오늘 일정 보기
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 영역 -->
+  <main class="flex-1">
+    <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+
+      <!-- 시간 & 오늘 날짜 -->
+      <section class="rounded-2xl border border-amber-100 bg-[var(--app-main-soft)] px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-semibold"
+               style="background: linear-gradient(135deg, #f0a223, #f97316);">
+            ⏰
+          </div>
+          <div>
+            <div id="today-date" class="text-xs sm:text-sm text-slate-700"></div>
+            <div id="current-time" class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900"></div>
+          </div>
+        </div>
+        <div class="text-[11px] sm:text-xs text-slate-600">
+          화면 글자가 작게 느껴지면 TV에서 <b>확대</b>하거나,  
+          브라우저에서 <b>확대(⌘+ / Ctrl+)</b> 기능을 사용해주세요.
+        </div>
+      </section>
+
+      <!-- 지금 진행 중인 프로그램 -->
+      <section class="rounded-2xl border border-amber-100 bg-white px-4 py-4 sm:px-6 sm:py-6 shadow-sm">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-lg sm:text-xl font-semibold text-slate-900">
+              지금 진행 중인 프로그램
+            </h2>
+            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">
+              현재 시간에 해당하는 활동과 수업명을 보여줍니다.
+            </p>
+          </div>
+          <button id="btn-open-drawer-mobile"
+                  class="sm:hidden text-[11px] px-3 py-1.5 rounded-full text-white font-medium"
+                  style="background: linear-gradient(135deg, #f0a223, #f97316);">
+            오늘 일정
+          </button>
+        </div>
+
+        <div id="current-block-box" class="rounded-xl border border-amber-100 bg-[var(--app-bg)] px-4 py-4 sm:px-5 sm:py-5">
+          <div id="current-block-time" class="text-sm sm:text-base font-medium text-amber-800 mb-1">
+            시간 정보를 불러오는 중...
+          </div>
+          <div id="current-block-title" class="text-2xl sm:text-3xl font-bold text-slate-900 mb-3 leading-snug">
+            -
+          </div>
+          <div id="current-block-activity" class="text-sm sm:text-base text-slate-700 leading-relaxed">
+            센터와 오늘 날짜를 기준으로 프로그램 정보를 불러오는 중입니다.
+          </div>
+        </div>
+      </section>
+
+      <!-- 다음 프로그램 -->
+      <section class="rounded-2xl border border-amber-100 bg-white px-4 py-4 sm:px-6 sm:py-5 shadow-sm">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h2 class="text-base sm:text-lg font-semibold text-slate-900">
+            다음 프로그램
+          </h2>
+        </div>
+
+        <div id="next-block-box" class="rounded-xl border border-dashed border-amber-200 bg-[var(--app-bg)] px-4 py-3 sm:px-5 sm:py-4 text-sm sm:text-base text-slate-700">
+          다음 프로그램 정보를 불러오는 중입니다...
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 드로어: 오늘 일정 전체 보기 -->
+  <div id="drawer-backdrop"></div>
+  <aside id="drawer">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+      <div class="flex flex-col">
+        <span class="text-sm font-semibold text-slate-900">오늘 일정</span>
+        <span id="drawer-center-name" class="text-[11px] text-slate-500"></span>
+      </div>
+      <button id="btn-close-drawer"
+              class="text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-700">
+        닫기 ✕
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-3 py-3">
+      <div id="drawer-schedule" class="space-y-2 text-sm">
+        <!-- JS에서 일정 렌더링 -->
+      </div>
+    </div>
+  </aside>
+
+  <!-- 센터 선택 오버레이 -->
+  <div id="center-overlay" class="hidden">
+    <div class="max-w-sm w-full bg-white rounded-2xl shadow-xl px-5 py-6">
+      <h2 class="text-lg font-semibold text-slate-900 mb-1">
+        센터 이름을 입력해주세요
+      </h2>
+      <p class="text-[11px] text-slate-500 mb-4">
+        예: 아현실버데이케어센터<br/>
+        (브라우저에 기억되어 다음 접속부터 자동으로 불러옵니다.)
+      </p>
+      <label for="center-input-overlay" class="block text-xs font-medium text-slate-700 mb-1">
+        센터 이름
+      </label>
+      <input
+        id="center-input-overlay"
+        type="text"
+        class="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-main)] focus:border-[var(--app-main)]"
+        placeholder="예: 아현실버데이케어센터"
+      />
+      <button id="btn-confirm-center"
+              class="w-full py-2.5 rounded-lg text-sm font-semibold text-white"
+              style="background: linear-gradient(135deg, #f0a223, #f97316);">
+        이 센터로 시작하기
+      </button>
+      <p class="mt-3 text-[10px] text-slate-500">
+        * URL에 <code>?center=아현실버데이케어센터</code> 또는
+        <code>/app/아현실버데이케어센터</code> 형식으로 접속하면 자동으로 인식합니다.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // ================================
+    // Supabase 연결 설정
+    // ================================
+    const SUPABASE_URL = 'https://cttqnwngksbrvtveoqpv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0dHFud25na3NicnZ0dmVvcXB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1ODc2NzgsImV4cCI6MjA3NzE2MzY3OH0.IBtCyc01ptYUyDeEYx6rAo31IfdSiP3AgTRi8nAowrI'; // ← admin에서 사용한 anon public key와 동일하게
+
+    const TABLE_DAILY   = 'daily_templates';
+    const TABLE_MONTHLY = 'monthly_programs';
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ================================
+    // 상태 변수
+    // ================================
+    let centerName = '';
+    let dailyBlocks = [];           // [{block_index,start_time,end_time,label}, ...]
+    let monthlyActivities = {};     // { 1: '...', 2: '...', 3: '...' }
+    let clockTimer = null;
+
+    // 기본 일일 템플릿 (DB에 없을 때 fallback)
+    const defaultDailyBlocks = [
+      { block_index: 1,  start_time: '08:00', end_time: '10:20', label: '아침송영' },
+      { block_index: 2,  start_time: '10:20', end_time: '11:00', label: '아침조회' },
+      { block_index: 3,  start_time: '11:00', end_time: '12:00', label: '수업 1' },
+      { block_index: 4,  start_time: '12:00', end_time: '13:00', label: '점심 식사' },
+      { block_index: 5,  start_time: '13:00', end_time: '14:00', label: '휴식/오침' },
+      { block_index: 6,  start_time: '14:00', end_time: '15:00', label: '수업 2' },
+      { block_index: 7,  start_time: '15:00', end_time: '15:30', label: '간식' },
+      { block_index: 8,  start_time: '15:30', end_time: '16:00', label: '생활 교육' },
+      { block_index: 9,  start_time: '16:00', end_time: '17:00', label: '수업 3' },
+      { block_index: 10, start_time: '17:00', end_time: '18:00', label: '송영' }
+    ];
+
+    // ================================
+    // DOM 요소
+    // ================================
+    const headerCenterNameEl = document.getElementById('header-center-name');
+    const drawerCenterNameEl = document.getElementById('drawer-center-name');
+
+    const todayDateEl   = document.getElementById('today-date');
+    const currentTimeEl = document.getElementById('current-time');
+
+    const currentBlockTimeEl     = document.getElementById('current-block-time');
+    const currentBlockTitleEl    = document.getElementById('current-block-title');
+    const currentBlockActivityEl = document.getElementById('current-block-activity');
+
+    const nextBlockBoxEl         = document.getElementById('next-block-box');
+    const drawerBackdropEl       = document.getElementById('drawer-backdrop');
+    const drawerEl               = document.getElementById('drawer');
+    const drawerScheduleEl       = document.getElementById('drawer-schedule');
+
+    const btnChangeCenter        = document.getElementById('btn-change-center');
+    const btnOpenDrawer          = document.getElementById('btn-open-drawer');
+    const btnOpenDrawerMobile    = document.getElementById('btn-open-drawer-mobile');
+    const btnCloseDrawer         = document.getElementById('btn-close-drawer');
+
+    const centerOverlayEl        = document.getElementById('center-overlay');
+    const centerInputOverlayEl   = document.getElementById('center-input-overlay');
+    const btnConfirmCenter       = document.getElementById('btn-confirm-center');
+
+    // ================================
+    // 유틸 함수
+    // ================================
+    function hhmmToMinutes(hhmm) {
+      if (!hhmm || typeof hhmm !== 'string') return 0;
+      const [h, m] = hhmm.split(':').map((x) => parseInt(x, 10) || 0);
+      return h * 60 + m;
+    }
+
+    function getKoreanDayName(d) {
+      const names = ['일', '월', '화', '수', '목', '금', '토'];
+      return names[d.getDay()];
+    }
+
+    function formatDateLabel(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dow = getKoreanDayName(d);
+      return `${y}년 ${m}월 ${day}일 (${dow})`;
+    }
+
+    function todayISO() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function slotFromLabel(label) {
+      if (!label) return null;
+      const m = label.match(/수업\s*([123])/);
+      if (!m) return null;
+      const n = parseInt(m[1], 10);
+      return isNaN(n) ? null : n;
+    }
+
+    function parseCenterFromURL() {
+      const url = new URL(location.href);
+
+      // ?center=아현실버데이케어센터
+      const qsCenter = url.searchParams.get('center');
+      if (qsCenter) return decodeURIComponent(qsCenter);
+
+      // /app/아현실버데이케어센터 형태 지원
+      const segments = location.pathname.split('/').filter(Boolean);
+      if (segments.length >= 2) {
+        const last = segments[segments.length - 1];
+        if (last !== 'app' && last !== 'index.html') {
+          try {
+            return decodeURIComponent(last);
+          } catch {
+            return last;
+          }
+        }
+      }
+      return '';
+    }
+
+    function resolveInitialCenter() {
+      // URL에 있으면 URL 우선
+      const urlCenter = parseCenterFromURL();
+      if (urlCenter) {
+        localStorage.setItem('senioreye_center', urlCenter);
+        return urlCenter;
+      }
+      // 로컬 저장된 센터
+      const saved = localStorage.getItem('senioreye_center');
+      if (saved) return saved;
+      return '';
+    }
+
+    function openCenterOverlay() {
+      centerOverlayEl.classList.remove('hidden');
+      setTimeout(() => centerInputOverlayEl.focus(), 50);
+    }
+
+    function closeCenterOverlay() {
+      centerOverlayEl.classList.add('hidden');
+    }
+
+    function openDrawer() {
+      drawerBackdropEl.classList.add('open');
+      drawerEl.classList.add('open');
+    }
+
+    function closeDrawer() {
+      drawerBackdropEl.classList.remove('open');
+      drawerEl.classList.remove('open');
+    }
+
+    // ================================
+    // Supabase 데이터 로딩
+    // ================================
+    async function loadDailyTemplateForCenter() {
+      if (!centerName) return;
+      try {
+        const { data, error } = await db
+          .from(TABLE_DAILY)
+          .select('block_index, start_time, end_time, label')
+          .eq('center_name', centerName)
+          .order('block_index', { ascending: true });
+
+        if (error) {
+          console.error('loadDailyTemplate error:', error);
+          dailyBlocks = [...defaultDailyBlocks];
+          return;
+        }
+        if (!data || data.length === 0) {
+          dailyBlocks = [...defaultDailyBlocks];
+          return;
+        }
+
+        dailyBlocks = data.map((row) => ({
+          block_index: row.block_index,
+          start_time: (row.start_time || '').slice(0, 5),
+          end_time:   (row.end_time   || '').slice(0, 5),
+          label:      row.label || ''
+        }));
+      } catch (e) {
+        console.error('loadDailyTemplate exception:', e);
+        dailyBlocks = [...defaultDailyBlocks];
+      }
+    }
+
+    async function loadTodayMonthlyForCenter() {
+      if (!centerName) return;
+      try {
+        const iso = todayISO();
+        const { data, error } = await db
+          .from(TABLE_MONTHLY)
+          .select('class_slot, activity')
+          .eq('center_name', centerName)
+          .eq('class_date', iso);
+
+        if (error) {
+          console.error('loadTodayMonthly error:', error);
+          monthlyActivities = {};
+          return;
+        }
+
+        monthlyActivities = {};
+        (data || []).forEach((row) => {
+          monthlyActivities[row.class_slot] = row.activity || '';
+        });
+      } catch (e) {
+        console.error('loadTodayMonthly exception:', e);
+        monthlyActivities = {};
+      }
+    }
+
+    // ================================
+    // 화면 렌더링
+    // ================================
+    function updateClock() {
+      const now = new Date();
+      todayDateEl.textContent = formatDateLabel(now);
+
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      currentTimeEl.textContent = `${h}:${m}`;
+    }
+
+    function findCurrentAndNextBlock() {
+      if (!dailyBlocks || dailyBlocks.length === 0) return { current: null, next: null };
+
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const sortedBlocks = [...dailyBlocks].sort((a, b) => a.block_index - b.block_index);
+
+      let current = null;
+      let next    = null;
+
+      for (let i = 0; i < sortedBlocks.length; i++) {
+        const b = sortedBlocks[i];
+        const startM = hhmmToMinutes(b.start_time);
+        const endM   = hhmmToMinutes(b.end_time);
+
+        if (nowMinutes >= startM && nowMinutes < endM) {
+          current = b;
+          next = sortedBlocks[i + 1] || null;
+          break;
+        }
+        if (nowMinutes < startM) {
+          // 아직 시작 전
+          current = null;
+          next = b;
+          break;
+        }
+      }
+
+      if (!current && !next && sortedBlocks.length > 0) {
+        // 하루 일정이 모두 끝난 뒤
+        const last = sortedBlocks[sortedBlocks.length - 1];
+        if (nowMinutes < hhmmToMinutes(last.start_time)) {
+          next = last;
+        }
+      }
+
+      return { current, next };
+    }
+
+    function renderCurrentAndNext() {
+      updateClock();
+
+      const { current, next } = findCurrentAndNextBlock();
+      const iso = todayISO();
+
+      if (!current) {
+        currentBlockTimeEl.textContent = '현재 진행 중인 프로그램이 없습니다.';
+        currentBlockTitleEl.textContent = '지금은 자유 시간입니다';
+        currentBlockActivityEl.textContent = '다음 프로그램 시간까지 어르신과 자유롭게 대화하거나 휴식 시간을 가지셔도 좋습니다.';
+      } else {
+        currentBlockTimeEl.textContent = `${current.start_time} ~ ${current.end_time}`;
+        currentBlockTitleEl.textContent = current.label || '프로그램';
+
+        const slot = slotFromLabel(current.label);
+        if (slot && monthlyActivities[slot]) {
+          currentBlockActivityEl.textContent = monthlyActivities[slot];
+        } else if (slot && !monthlyActivities[slot]) {
+          currentBlockActivityEl.textContent = '오늘 수업 내용이 아직 등록되지 않았습니다.';
+        } else {
+          currentBlockActivityEl.textContent = '시간표에 등록된 기본 활동입니다.';
+        }
+      }
+
+      if (!next) {
+        nextBlockBoxEl.textContent = '오늘 예정된 다음 프로그램이 없습니다.';
+      } else {
+        const slot = slotFromLabel(next.label);
+        let activityText = '';
+        if (slot && monthlyActivities[slot]) {
+          activityText = `· 수업 ${slot} 프로그램: ${monthlyActivities[slot]}`;
+        } else if (slot) {
+          activityText = `· 수업 ${slot} 프로그램: 아직 미등록`;
+        }
+
+        nextBlockBoxEl.innerHTML = `
+          <div class="font-medium text-amber-800 mb-1">
+            ${next.start_time} ~ ${next.end_time}
+          </div>
+          <div class="font-semibold text-slate-900 mb-1">
+            ${next.label}
+          </div>
+          <div class="text-slate-700 text-sm">
+            ${activityText || '다음 활동이 시간표에 등록되어 있습니다.'}
+          </div>
+        `;
+      }
+
+      renderDrawerSchedule();
+    }
+
+    function renderDrawerSchedule() {
+      drawerScheduleEl.innerHTML = '';
+
+      if (!dailyBlocks || dailyBlocks.length === 0) {
+        drawerScheduleEl.innerHTML = '<div class="text-xs text-slate-500">일정 정보가 없습니다.</div>';
+        return;
+      }
+
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+
+      const sorted = [...dailyBlocks].sort((a, b) => a.block_index - b.block_index);
+
+      sorted.forEach((b) => {
+        const startM = hhmmToMinutes(b.start_time);
+        const endM   = hhmmToMinutes(b.end_time);
+
+        const isCurrent = nowMin >= startM && nowMin < endM;
+
+        const slot = slotFromLabel(b.label);
+        const activity = slot ? (monthlyActivities[slot] || '') : '';
+
+        const item = document.createElement('div');
+        item.className =
+          'rounded-xl border px-3 py-2.5 text-sm flex flex-col gap-0.5 ' +
+          (isCurrent ? 'border-amber-400 bg-[var(--app-main-soft)]' : 'border-slate-200 bg-white');
+
+        const line1 = document.createElement('div');
+        line1.className = 'flex items-center justify-between gap-2';
+        line1.innerHTML = `
+          <span class="text-xs font-medium text-amber-800">
+            ${b.start_time} ~ ${b.end_time}
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full ${
+            isCurrent
+              ? 'bg-amber-500 text-white'
+              : 'bg-slate-100 text-slate-600'
+          }">
+            ${isCurrent ? '지금' : '예정'}
+          </span>
+        `;
+        item.appendChild(line1);
+
+        const line2 = document.createElement('div');
+        line2.className = 'font-semibold text-slate-900 text-sm';
+        line2.textContent = b.label || '프로그램';
+        item.appendChild(line2);
+
+        if (activity) {
+          const line3 = document.createElement('div');
+          line3.className = 'text-xs text-slate-700';
+          line3.textContent = activity;
+          item.appendChild(line3);
+        } else if (slot) {
+          const line3 = document.createElement('div');
+          line3.className = 'text-xs text-slate-400';
+          line3.textContent = '오늘 수업 내용이 아직 등록되지 않았습니다.';
+          item.appendChild(line3);
+        }
+
+        drawerScheduleEl.appendChild(item);
+      });
+    }
+
+    // ================================
+    // 초기화 & 이벤트
+    // ================================
+    async function loadDataAndRender() {
+      if (!centerName) return;
+
+      headerCenterNameEl.textContent = centerName;
+      drawerCenterNameEl.textContent = `${centerName} · ${todayISO()} 기준`;
+
+      await loadDailyTemplateForCenter();
+      await loadTodayMonthlyForCenter();
+      renderCurrentAndNext();
+
+      if (clockTimer) clearInterval(clockTimer);
+      clockTimer = setInterval(renderCurrentAndNext, 60 * 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 오늘 날짜 표시 초기화
+      updateClock();
+      todayDateEl.textContent = formatDateLabel(new Date());
+
+      // 초기 센터 결정
+      centerName = resolveInitialCenter();
+
+      if (!centerName) {
+        openCenterOverlay();
+      } else {
+        await loadDataAndRender();
+      }
+
+      // 센터 변경 버튼
+      btnChangeCenter.addEventListener('click', () => {
+        centerInputOverlayEl.value = centerName || '';
+        openCenterOverlay();
+      });
+
+      // 센터 확정
+      btnConfirmCenter.addEventListener('click', async () => {
+        const v = centerInputOverlayEl.value.trim();
+        if (!v) {
+          alert('센터 이름을 입력해주세요.');
+          return;
+        }
+        centerName = v;
+        localStorage.setItem('senioreye_center', centerName);
+        closeCenterOverlay();
+        await loadDataAndRender();
+      });
+
+      centerInputOverlayEl.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          btnConfirmCenter.click();
+        }
+      });
+
+      // 드로어 열기/닫기
+      function handleOpenDrawer() { openDrawer(); }
+      function handleCloseDrawer() { closeDrawer(); }
+
+      btnOpenDrawer?.addEventListener('click', handleOpenDrawer);
+      btnOpenDrawerMobile?.addEventListener('click', handleOpenDrawer);
+      btnCloseDrawer?.addEventListener('click', handleCloseDrawer);
+      drawerBackdropEl.addEventListener('click', handleCloseDrawer);
+    });
+  </script>
+</body>
+</html>
