@@ -103,8 +103,6 @@
   <main class="flex-1">
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
-      <!-- (시간·날짜 패널 제거됨) -->
-
       <!-- 지금 진행 중인 프로그램 -->
       <section class="rounded-2xl border border-amber-100 bg-white px-4 py-4 sm:px-6 sm:py-6 shadow-sm">
         <div class="flex items-center justify-between gap-2 mb-3">
@@ -133,6 +131,8 @@
           <div id="current-block-activity" class="text-sm sm:text-base text-slate-700 leading-relaxed">
             센터와 오늘 날짜를 기준으로 프로그램 정보를 불러오는 중입니다.
           </div>
+          <!-- 🔹 인지력 강화용 미니게임이 들어갈 영역 -->
+          <div id="current-block-game" class="mt-4"></div>
         </div>
       </section>
 
@@ -274,6 +274,7 @@
     const currentBlockTimeEl     = document.getElementById('current-block-time');
     const currentBlockTitleEl    = document.getElementById('current-block-title');
     const currentBlockActivityEl = document.getElementById('current-block-activity');
+    const currentBlockGameEl     = document.getElementById('current-block-game');
 
     const nextBlockBoxEl         = document.getElementById('next-block-box');
     const drawerBackdropEl       = document.getElementById('drawer-backdrop');
@@ -481,7 +482,7 @@
     }
 
     // ================================
-    // 화면 렌더링
+    // 화면 렌더링 보조
     // ================================
     function updateClock() {
       const now = new Date();
@@ -514,7 +515,6 @@
           break;
         }
         if (nowMinutes < startM) {
-          // 아직 시작 전
           current = null;
           next = b;
           break;
@@ -522,7 +522,6 @@
       }
 
       if (!current && !next && sortedBlocks.length > 0) {
-        // 하루 일정이 모두 끝난 뒤
         const last = sortedBlocks[sortedBlocks.length - 1];
         if (nowMinutes < hhmmToMinutes(last.start_time)) {
           next = last;
@@ -532,36 +531,155 @@
       return { current, next };
     }
 
+    // ================================
+    // 틀린그림 찾기 게임 (인지력 강화용)
+    // ================================
+    const SPOT_DIFF_LEVEL = {
+      cols: 4,
+      rows: 3,
+      left:  [
+        '🍎','🍌','🍇','🍊',
+        '🍓','🍍','🥝','🍒',
+        '🍉','🥕','🥦','🍋'
+      ],
+      right: [
+        '🍎','🍌','🍇','🍊',
+        '🍓','🍍','🥝','🍒',
+        '🍉','🥕','🥦','🍐'  // 마지막 칸만 다름
+      ],
+      answers: [11] // 오른쪽에서 다른 칸 index
+    };
+
+    function renderGameForActivity(activityName) {
+      if (!currentBlockGameEl) return;
+
+      // 항상 초기화
+      currentBlockGameEl.innerHTML = '';
+
+      // "인지력 강화"가 아닐 경우 게임 표시 안 함
+      if (activityName !== '인지력 강화') {
+        return;
+      }
+
+      currentBlockGameEl.innerHTML = `
+        <div class="text-xs sm:text-sm text-slate-600 mb-2">
+          <b>틀린 그림 찾기 게임</b><br/>
+          왼쪽과 오른쪽 그림 중 <b>다른 곳</b>을 찾아 터치/클릭해보세요.
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="flex-1">
+            <div class="text-center text-[11px] text-slate-500 mb-1">왼쪽</div>
+            <div class="grid grid-cols-4 gap-2" data-role="left-grid"></div>
+          </div>
+          <div class="flex-1">
+            <div class="text-center text-[11px] text-slate-500 mb-1">오른쪽</div>
+            <div class="grid grid-cols-4 gap-2" data-role="right-grid"></div>
+          </div>
+        </div>
+        <div data-role="status" class="mt-2 text-xs sm:text-sm text-amber-800 font-medium"></div>
+      `;
+
+      const leftGrid  = currentBlockGameEl.querySelector('[data-role="left-grid"]');
+      const rightGrid = currentBlockGameEl.querySelector('[data-role="right-grid"]');
+      const statusEl  = currentBlockGameEl.querySelector('[data-role="status"]');
+
+      const level = SPOT_DIFF_LEVEL;
+      const totalDiff = level.answers.length;
+      const found = new Set();
+
+      function updateStatus() {
+        const remain = totalDiff - found.size;
+        if (remain <= 0) {
+          statusEl.textContent = '모든 다른 그림을 찾았습니다! 잘하셨어요 👏';
+        } else {
+          statusEl.textContent = `다른 그림이 아직 ${remain}개 남아 있습니다.`;
+        }
+      }
+
+      // 왼쪽: 보기용
+      level.left.forEach((emoji) => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className =
+          'w-12 h-12 sm:w-14 sm:h-14 text-2xl sm:text-3xl flex items-center justify-center rounded-xl bg-white border border-amber-100 shadow-sm';
+        cell.textContent = emoji;
+        cell.setAttribute('aria-hidden', 'true');
+        leftGrid.appendChild(cell);
+      });
+
+      // 오른쪽: 클릭으로 정답 찾기
+      level.right.forEach((emoji, idx) => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className =
+          'w-12 h-12 sm:w-14 sm:h-14 text-2xl sm:text-3xl flex items-center justify-center rounded-xl bg-white border border-amber-100 shadow-sm transition';
+        cell.textContent = emoji;
+        cell.dataset.index = String(idx);
+
+        cell.addEventListener('click', () => {
+          const i = parseInt(cell.dataset.index, 10);
+          const isAnswer = level.answers.includes(i);
+
+          if (!isAnswer) {
+            cell.classList.add('ring-2', 'ring-red-300');
+            setTimeout(() => {
+              cell.classList.remove('ring-2', 'ring-red-300');
+            }, 400);
+            return;
+          }
+
+          if (found.has(i)) return;
+
+          found.add(i);
+          cell.classList.add('bg-amber-100', 'border-amber-400', 'scale-105');
+          updateStatus();
+        });
+
+        rightGrid.appendChild(cell);
+      });
+
+      updateStatus();
+    }
+
+    // ================================
+    // 메인 렌더링
+    // ================================
     function renderCurrentAndNext() {
       updateClock();
-    
+
       const { current, next } = findCurrentAndNextBlock();
-    
+      let currentActivityNameForGame = null;
+
       // ==== 지금 진행 중인 프로그램 ====
       if (!current) {
         currentBlockTimeEl.textContent = '현재 진행 중인 프로그램이 없습니다.';
         currentBlockTitleEl.textContent = '지금은 자유 시간입니다';
         currentBlockActivityEl.textContent =
           '다음 프로그램 시간까지 어르신과 자유롭게 대화하거나 휴식 시간을 가지셔도 좋습니다.';
+        renderGameForActivity(null);
       } else {
         currentBlockTimeEl.textContent = `${current.start_time} ~ ${current.end_time}`;
-    
-        const slot = slotFromLabel(current.label); // 수업 1 / 2 / 3 에서 번호 추출
-        let titleText = current.label || '프로그램'; // 기본값: 수업 3 이런 라벨
+
+        const slot = slotFromLabel(current.label);
+        let titleText = current.label || '프로그램';
         let descText  = '시간표에 등록된 기본 활동입니다.';
-    
-        // monthly_programs에 해당 수업 슬롯이 있으면 → 그 activity를 제목으로 사용
+
         if (slot && monthlyActivities[slot]) {
-          titleText = monthlyActivities[slot];              // 예: "인지 강화"
-          descText  = `수업 ${slot} 프로그램입니다.`;        // 아래 작은 설명
+          const act = monthlyActivities[slot];     // 예: "인지력 강화"
+          titleText = act;
+          descText  = `수업 ${slot} 프로그램입니다.`;
+          currentActivityNameForGame = act;
         } else if (slot && !monthlyActivities[slot]) {
           descText = '오늘 수업 내용이 아직 등록되지 않았습니다.';
         }
-    
+
         currentBlockTitleEl.textContent    = titleText;
         currentBlockActivityEl.textContent = descText;
+
+        // 현재 활동명 기준으로 게임 표시
+        renderGameForActivity(currentActivityNameForGame);
       }
-    
+
       // ==== 다음 프로그램 ====
       if (!next) {
         nextBlockBoxEl.textContent = '오늘 예정된 다음 프로그램이 없습니다.';
@@ -569,15 +687,15 @@
         const slotNext = slotFromLabel(next.label);
         let nextTitle = next.label || '프로그램';
         let nextDesc  = '다음 활동이 시간표에 등록되어 있습니다.';
-    
+
         if (slotNext && monthlyActivities[slotNext]) {
-          // 다음 프로그램 카드도 같은 규칙 적용
-          nextTitle = monthlyActivities[slotNext];
-          nextDesc  = `수업 ${slotNext} 프로그램: ${monthlyActivities[slotNext]}`;
+          const actNext = monthlyActivities[slotNext];
+          nextTitle = actNext;
+          nextDesc  = `수업 ${slotNext} 프로그램: ${actNext}`;
         } else if (slotNext && !monthlyActivities[slotNext]) {
           nextDesc = `수업 ${slotNext} 프로그램: 아직 미등록`;
         }
-    
+
         nextBlockBoxEl.innerHTML = `
           <div class="font-medium text-amber-800 mb-1">
             ${next.start_time} ~ ${next.end_time}
@@ -590,10 +708,9 @@
           </div>
         `;
       }
-    
+
       renderDrawerSchedule();
     }
-    
 
     function renderDrawerSchedule() {
       drawerScheduleEl.innerHTML = '';
@@ -684,10 +801,8 @@
       centerName = resolveInitialCenter();
 
       if (centerName) {
-        // URL / localStorage에서 가져온 센터가 실제로 존재하는지 확인
         const exists = await checkCenterExists(centerName);
         if (!exists) {
-          // 존재하지 않으면 초기값 제거 후 다시 입력 받기
           localStorage.removeItem('senioreye_center');
           centerName = '';
           openCenterOverlay();
@@ -705,7 +820,7 @@
         openCenterOverlay();
       });
 
-      // 입력 중에는 에러 메시지 숨기기
+      // 입력 중 에러 숨기기
       centerInputOverlayEl.addEventListener('input', () => {
         hideCenterError();
       });
