@@ -57,7 +57,7 @@
       transform: translateX(0);
     }
 
-    /* 센터 선택 오버레이 */
+    /* 센터 선택 오버레이 (display는 Tailwind의 hidden/flex로 제어) */
     #center-overlay {
       position: fixed;
       inset: 0;
@@ -204,9 +204,13 @@
       <input
         id="center-input-overlay"
         type="text"
-        class="w-full border rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-main)] focus:border-[var(--app-main)]"
+        class="w-full border rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--app-main)] focus:border-[var(--app-main)]"
         placeholder="예: 아현실버데이케어센터"
       />
+      <!-- 에러 메시지 -->
+      <p id="center-error" class="mb-2 text-[11px] text-red-500 hidden">
+        입력하신 기관이 존재하지 않습니다.
+      </p>
       <button id="btn-confirm-center"
               class="w-full py-2.5 rounded-lg text-sm font-semibold text-white"
               style="background: linear-gradient(135deg, #f0a223, #f97316);">
@@ -280,6 +284,7 @@
     const centerOverlayEl        = document.getElementById('center-overlay');
     const centerInputOverlayEl   = document.getElementById('center-input-overlay');
     const btnConfirmCenter       = document.getElementById('btn-confirm-center');
+    const centerErrorEl          = document.getElementById('center-error');
 
     // ================================
     // 유틸 함수
@@ -357,12 +362,25 @@
     function openCenterOverlay() {
       if (!centerOverlayEl) return;
       centerOverlayEl.classList.remove('hidden');
+      if (centerErrorEl) centerErrorEl.classList.add('hidden');
       setTimeout(() => centerInputOverlayEl && centerInputOverlayEl.focus(), 50);
     }
 
     function closeCenterOverlay() {
       if (!centerOverlayEl) return;
       centerOverlayEl.classList.add('hidden');
+      if (centerErrorEl) centerErrorEl.classList.add('hidden');
+    }
+
+    function showCenterError(msg) {
+      if (!centerErrorEl) return;
+      centerErrorEl.textContent = msg || '입력하신 기관이 존재하지 않습니다.';
+      centerErrorEl.classList.remove('hidden');
+    }
+
+    function hideCenterError() {
+      if (!centerErrorEl) return;
+      centerErrorEl.classList.add('hidden');
     }
 
     function openDrawer() {
@@ -373,6 +391,29 @@
     function closeDrawer() {
       drawerBackdropEl.classList.remove('open');
       drawerEl.classList.remove('open');
+    }
+
+    // ================================
+    // Supabase에서 센터 존재 여부 확인
+    // ================================
+    async function checkCenterExists(name) {
+      if (!name) return false;
+      try {
+        const { data, error } = await db
+          .from(TABLE_DAILY)
+          .select('center_name')
+          .eq('center_name', name)
+          .limit(1);
+
+        if (error) {
+          console.error('checkCenterExists error:', error);
+          return false;
+        }
+        return !!(data && data.length > 0);
+      } catch (e) {
+        console.error('checkCenterExists exception:', e);
+        return false;
+      }
     }
 
     // ================================
@@ -491,7 +532,6 @@
       updateClock();
 
       const { current, next } = findCurrentAndNextBlock();
-      const iso = todayISO();
 
       if (!current) {
         currentBlockTimeEl.textContent = '현재 진행 중인 프로그램이 없습니다.';
@@ -627,25 +667,48 @@
       // 초기 센터 결정
       centerName = resolveInitialCenter();
 
-      if (!centerName) {
-        openCenterOverlay();
+      if (centerName) {
+        // URL / localStorage에서 가져온 센터가 실제로 존재하는지 확인
+        const exists = await checkCenterExists(centerName);
+        if (!exists) {
+          // 존재하지 않으면 초기값 제거 후 다시 입력 받기
+          localStorage.removeItem('senioreye_center');
+          centerName = '';
+          openCenterOverlay();
+        } else {
+          await loadDataAndRender();
+        }
       } else {
-        await loadDataAndRender();
+        openCenterOverlay();
       }
 
       // 센터 변경 버튼
       btnChangeCenter.addEventListener('click', () => {
         centerInputOverlayEl.value = centerName || '';
+        hideCenterError();
         openCenterOverlay();
+      });
+
+      // 입력 중에는 에러 메시지 숨기기
+      centerInputOverlayEl.addEventListener('input', () => {
+        hideCenterError();
       });
 
       // 센터 확정
       btnConfirmCenter.addEventListener('click', async () => {
-        const v = centerInputOverlayEl.value.trim();
+        const v = (centerInputOverlayEl.value || '').trim();
         if (!v) {
           alert('센터 이름을 입력해주세요.');
           return;
         }
+
+        hideCenterError();
+        const exists = await checkCenterExists(v);
+        if (!exists) {
+          showCenterError('입력하신 기관이 존재하지 않습니다.');
+          return;
+        }
+
         centerName = v;
         localStorage.setItem('senioreye_center', centerName);
         closeCenterOverlay();
