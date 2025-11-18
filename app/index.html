@@ -12,10 +12,6 @@
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- 게임 스크립트 (GitHub/Vercel에서 정적 파일로 서빙) -->
-  <!-- app/games/spot_diff.js 안에서 window.renderSpotDiffGame(container) 정의 -->
-  <script src="./games/spot_diff.js"></script>
-
   <style>
     :root {
       --app-main: #f0a223;
@@ -107,8 +103,6 @@
   <main class="flex-1">
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
-      <!-- (시간·날짜 패널 제거됨) -->
-
       <!-- 지금 진행 중인 프로그램 -->
       <section class="rounded-2xl border border-amber-100 bg-white px-4 py-4 sm:px-6 sm:py-6 shadow-sm">
         <div class="flex items-center justify-between gap-2 mb-3">
@@ -137,8 +131,7 @@
           <div id="current-block-activity" class="text-sm sm:text-base text-slate-700 leading-relaxed">
             센터와 오늘 날짜를 기준으로 프로그램 정보를 불러오는 중입니다.
           </div>
-
-          <!-- 여기에 활동에 따라 게임(틀린 그림 찾기 등)이 렌더링됨 -->
+          <!-- 🔹 여기 게임 영역 추가 -->
           <div id="current-block-game" class="mt-4"></div>
         </div>
       </section>
@@ -234,6 +227,9 @@
     </div>
   </div>
 
+  <!-- 🔹 게임 스크립트 (spot_diff) -->
+  <script src="./games/spot_diff.js"></script>
+
   <script>
     // ================================
     // Supabase 연결 설정
@@ -254,7 +250,6 @@
     let dailyBlocks = [];           // [{block_index,start_time,end_time,label}, ...]
     let monthlyActivities = {};     // { 1: '...', 2: '...', 3: '...' }
     let clockTimer = null;
-    let currentActivityNameForGame = ''; // 현재 블록에 연결된 활동명 (게임 선택용)
 
     // 기본 일일 템플릿 (DB에 없을 때 fallback)
     const defaultDailyBlocks = [
@@ -406,6 +401,27 @@
       drawerEl.classList.remove('open');
     }
 
+    // 게임 영역 초기화 / 렌더링
+    function clearGame() {
+      if (currentBlockGameEl) {
+        currentBlockGameEl.innerHTML = '';
+      }
+    }
+
+    function renderGameForActivity(activityName) {
+      if (!currentBlockGameEl) return;
+      clearGame();
+      if (!activityName) return;
+
+      // 🔸 여기서 activity 텍스트와 게임을 매칭
+      // 예: activity === "인지력 강화" → spot_diff.js 실행
+      if (activityName === '인지력 강화' && window.renderSpotDiffGame) {
+        window.renderSpotDiffGame(currentBlockGameEl);
+      }
+      // 나중에 다른 게임:
+      // else if (activityName === '기억력 게임' && window.renderMemoryGame) { ... }
+    }
+
     // ================================
     // Supabase에서 센터 존재 여부 확인
     // ================================
@@ -490,7 +506,7 @@
     }
 
     // ================================
-    // 화면 렌더링 - 시계
+    // 화면 렌더링
     // ================================
     function updateClock() {
       const now = new Date();
@@ -501,9 +517,6 @@
       if (currentTimeEl) currentTimeEl.textContent = `${h}:${m}`;
     }
 
-    // ================================
-    // 현재·다음 블록 찾기
-    // ================================
     function findCurrentAndNextBlock() {
       if (!dailyBlocks || dailyBlocks.length === 0) return { current: null, next: null };
 
@@ -544,34 +557,11 @@
       return { current, next };
     }
 
-    // ================================
-    // 게임 렌더링 (활동명 → 게임)
-    // ================================
-    function clearGame() {
-      if (!currentBlockGameEl) return;
-      currentBlockGameEl.innerHTML = '';
-    }
-
-    function renderGameForActivity(activityName) {
-      if (!currentBlockGameEl) return;
-      clearGame();
-      if (!activityName) return;
-
-      // 예시: monthly_programs.activity === '인지력 강화' 이면 spot_diff.js 게임 사용
-      if (activityName === '인지력 강화' && window.renderSpotDiffGame) {
-        window.renderSpotDiffGame(currentBlockGameEl);
-      }
-      // 이후 다른 활동명에 따라 다른 게임을 연결하고 싶으면 여기 else if 추가
-      // else if (activityName === '기억력 훈련' && window.renderMemoryGame) { ... }
-    }
-
-    // ================================
-    // 현재·다음 프로그램 렌더링
-    // ================================
     function renderCurrentAndNext() {
       updateClock();
 
       const { current, next } = findCurrentAndNextBlock();
+      let activityNameForGame = null;  // 현재 블록에 매칭되는 activity
 
       // ==== 지금 진행 중인 프로그램 ====
       if (!current) {
@@ -579,32 +569,29 @@
         currentBlockTitleEl.textContent = '지금은 자유 시간입니다';
         currentBlockActivityEl.textContent =
           '다음 프로그램 시간까지 어르신과 자유롭게 대화하거나 휴식 시간을 가지셔도 좋습니다.';
-        currentActivityNameForGame = '';
-        renderGameForActivity(null);
+        clearGame();
       } else {
         currentBlockTimeEl.textContent = `${current.start_time} ~ ${current.end_time}`;
 
         const slot = slotFromLabel(current.label); // 수업 1 / 2 / 3 에서 번호 추출
         let titleText = current.label || '프로그램'; // 기본값: 수업 3 이런 라벨
         let descText  = '시간표에 등록된 기본 활동입니다.';
-        currentActivityNameForGame = '';
 
         // monthly_programs에 해당 수업 슬롯이 있으면 → 그 activity를 제목으로 사용
         if (slot && monthlyActivities[slot]) {
-          const act = monthlyActivities[slot];   // 예: "인지력 강화"
-          titleText = act;
-          descText  = `수업 ${slot} 프로그램입니다.`;
-          currentActivityNameForGame = act;
+          titleText = monthlyActivities[slot];           // 예: "인지력 강화"
+          descText  = `수업 ${slot} 프로그램입니다.`;     // 아래 작은 설명
+          activityNameForGame = monthlyActivities[slot]; // 게임 매칭용
         } else if (slot && !monthlyActivities[slot]) {
           descText = '오늘 수업 내용이 아직 등록되지 않았습니다.';
         }
 
         currentBlockTitleEl.textContent    = titleText;
         currentBlockActivityEl.textContent = descText;
-
-        // 활동명에 따라 게임 렌더링
-        renderGameForActivity(currentActivityNameForGame);
       }
+
+      // 현재 activity 기준으로 게임 렌더링
+      renderGameForActivity(activityNameForGame);
 
       // ==== 다음 프로그램 ====
       if (!next) {
@@ -637,9 +624,6 @@
       renderDrawerSchedule();
     }
 
-    // ================================
-    // 드로어 일정 렌더링
-    // ================================
     function renderDrawerSchedule() {
       drawerScheduleEl.innerHTML = '';
 
