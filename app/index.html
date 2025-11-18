@@ -103,23 +103,7 @@
   <main class="flex-1">
     <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
-      <!-- 시간 & 오늘 날짜 -->
-      <section class="rounded-2xl border border-amber-100 bg-[var(--app-main-soft)] px-4 py-3 sm:px-6 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-xl font-semibold"
-               style="background: linear-gradient(135deg, #f0a223, #f97316);">
-            ⏰
-          </div>
-          <div>
-            <div id="today-date" class="text-xs sm:text-sm text-slate-700"></div>
-            <div id="current-time" class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900"></div>
-          </div>
-        </div>
-        <div class="text-[11px] sm:text-xs text-slate-600">
-          화면 글자가 작게 느껴지면 TV에서 <b>확대</b>하거나,  
-          브라우저에서 <b>확대(⌘+ / Ctrl+)</b> 기능을 사용해주세요.
-        </div>
-      </section>
+      <!-- (시간·날짜 패널 제거됨) -->
 
       <!-- 지금 진행 중인 프로그램 -->
       <section class="rounded-2xl border border-amber-100 bg-white px-4 py-4 sm:px-6 sm:py-6 shadow-sm">
@@ -171,6 +155,7 @@
   <!-- 드로어: 오늘 일정 전체 보기 -->
   <div id="drawer-backdrop"></div>
   <aside id="drawer">
+    <!-- 드로어 헤더 -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200">
       <div class="flex flex-col">
         <span class="text-sm font-semibold text-slate-900">오늘 일정</span>
@@ -181,6 +166,25 @@
         닫기 ✕
       </button>
     </div>
+
+    <!-- 드로어 안의 시간·날짜 패널 -->
+    <div class="px-4 py-3 border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-white text-lg font-semibold"
+             style="background: linear-gradient(135deg, #f0a223, #f97316);">
+          ⏰
+        </div>
+        <div>
+          <div id="today-date" class="text-xs text-slate-700"></div>
+          <div id="current-time" class="text-lg font-bold text-slate-900"></div>
+        </div>
+      </div>
+      <p class="mt-2 text-[10px] text-slate-500">
+        화면 글자가 작게 느껴지면 TV 또는 브라우저에서 확대(⌘+ / Ctrl+) 기능을 사용해주세요.
+      </p>
+    </div>
+
+    <!-- 일정 리스트 -->
     <div class="flex-1 overflow-y-auto px-3 py-3">
       <div id="drawer-schedule" class="space-y-2 text-sm">
         <!-- JS에서 일정 렌더링 -->
@@ -481,11 +485,11 @@
     // ================================
     function updateClock() {
       const now = new Date();
-      todayDateEl.textContent = formatDateLabel(now);
+      if (todayDateEl) todayDateEl.textContent = formatDateLabel(now);
 
       const h = String(now.getHours()).padStart(2, '0');
       const m = String(now.getMinutes()).padStart(2, '0');
-      currentTimeEl.textContent = `${h}:${m}`;
+      if (currentTimeEl) currentTimeEl.textContent = `${h}:${m}`;
     }
 
     function findCurrentAndNextBlock() {
@@ -649,7 +653,7 @@
       if (!centerName) return;
 
       headerCenterNameEl.textContent = centerName;
-      drawerCenterNameEl.textContent = `${centerName} · ${todayISO()} 기준`;
+      drawerCenterNameEl.textContent = `${centerName}`;
 
       await loadDailyTemplateForCenter();
       await loadTodayMonthlyForCenter();
@@ -662,7 +666,6 @@
     document.addEventListener('DOMContentLoaded', async () => {
       // 오늘 날짜 표시 초기화
       updateClock();
-      todayDateEl.textContent = formatDateLabel(new Date());
 
       // 초기 센터 결정
       centerName = resolveInitialCenter();
